@@ -6,6 +6,7 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
+    pub exit_code: i32,
 }
 
 impl Scanner {
@@ -16,6 +17,7 @@ impl Scanner {
             start: 0,
             current: 0,
             line: 1,
+            exit_code: 0,
         }
     }
 
@@ -36,18 +38,33 @@ impl Scanner {
             '\n' => {
                 self.line += 1;
             }
+            '(' => self.add_token(TokenType::LeftParen),
+            ')' => self.add_token(TokenType::RightParen),
+            '{' => self.add_token(TokenType::LeftBrace),
+            '}' => self.add_token(TokenType::RightBrace),
+            ',' => self.add_token(TokenType::Comma),
+            '.' => self.add_token(TokenType::Dot),
+            '-' => self.add_token(TokenType::Minus),
+            '+' => self.add_token(TokenType::Plus),
+            ';' => self.add_token(TokenType::Semicolon),
+            '*' => self.add_token(TokenType::Star),
+            '/' => self.add_token(TokenType::Slash),
             _ => {
-                let _type = TokenType::new(ch);
-                let token = Token::new(
-                    _type,
-                    self.source[self.start..self.current].iter().collect(),
-                    None,
-                    self.line,
-                );
-                self.tokens.push(token);
-                self.start = self.current;
+                eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
+                self.exit_code = 65;
             }
-        }
+        };
+        self.start = self.current;
+    }
+
+    fn add_token(&mut self, _type: TokenType) {
+        let token = Token::new(
+            _type,
+            self.source[self.start..self.current].iter().collect(),
+            None,
+            self.line,
+        );
+        self.tokens.push(token);
     }
 
     fn next(&mut self) -> char {
