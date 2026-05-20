@@ -14,6 +14,9 @@ pub enum TokenType {
     Star,
     Slash,
 
+    Equal,
+    Equal_Equal,
+
     Eof,
     Unknown,
 }
@@ -33,27 +36,9 @@ impl Display for TokenType {
             TokenType::Semicolon => write!(f, "SEMICOLON"),
             TokenType::Star => write!(f, "STAR"),
             TokenType::Slash => write!(f, "SLASH"),
-
+            TokenType::Equal => write!(f,"EQUAL"),
+            TokenType::Equal_Equal => write!(f,"EQUAL_EQUAL"),
             TokenType::Unknown => write!(f, "UNKNOWN"),
-        }
-    }
-}
-
-impl TokenType {
-    pub fn new(s: char) -> Self {
-        match s {
-            '(' => TokenType::LeftParen,
-            ')' => TokenType::RightParen,
-            '{' => TokenType::LeftBrace,
-            '}' => TokenType::RightBrace,
-            ',' => TokenType::Comma,
-            '.' => TokenType::Dot,
-            '-' => TokenType::Minus,
-            '+' => TokenType::Plus,
-            ';' => TokenType::Semicolon,
-            '*' => TokenType::Star,
-            '/' => TokenType::Slash,
-            _ => TokenType::Unknown,
         }
     }
 }

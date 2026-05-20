@@ -49,6 +49,13 @@ impl Scanner {
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
             '/' => self.add_token(TokenType::Slash),
+            '=' => {
+                if self.matches('=') {
+                    self.add_token(TokenType::Equal_Equal);
+                } else {
+                    self.add_token(TokenType::Equal);
+                }
+            }
             _ => {
                 eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
                 self.exit_code = 65;
@@ -71,6 +78,17 @@ impl Scanner {
         let ch = self.source[self.current];
         self.current += 1;
         ch
+    }
+
+    fn matches(&mut self, ch: char) -> bool {
+        if self.is_at_end() {
+            return false;
+        }
+        if self.source[self.current] != ch {
+            return false;
+        }
+        self.current += 1;
+        true
     }
 
     fn is_at_end(&self) -> bool {
