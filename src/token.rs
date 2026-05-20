@@ -1,9 +1,11 @@
 use std::fmt::Display;
 
-#[derive(Clone, Copy,Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum TokenType {
     LeftParen,
     RightParen,
+    LeftBrace,
+    RightBrace,
 
     Eof,
     Unknown,
@@ -14,6 +16,8 @@ impl Display for TokenType {
         match self {
             TokenType::LeftParen => write!(f, "LEFT_PAREN"),
             TokenType::RightParen => write!(f, "RIGHT_PAREN"),
+            TokenType::LeftBrace => write!(f, "LEFT_BRACE"),
+            TokenType::RightBrace => write!(f, "RIGHT_BRACE"),
             TokenType::Eof => write!(f, "EOF"),
             TokenType::Unknown => write!(f, "UNKNOWN"),
         }
@@ -25,12 +29,14 @@ impl TokenType {
         match s {
             '(' => TokenType::LeftParen,
             ')' => TokenType::RightParen,
+            '{' => TokenType::LeftBrace,
+            '}' => TokenType::RightBrace,
             _ => TokenType::Unknown,
         }
     }
 }
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Token {
     _type: TokenType,
     lexeme: String,
