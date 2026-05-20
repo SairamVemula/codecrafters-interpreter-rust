@@ -23,6 +23,8 @@ pub enum TokenType {
     Greater,
     GreaterEqual,
 
+    String,
+
     Eof,
     Unknown,
 }
@@ -50,6 +52,7 @@ impl Display for TokenType {
             TokenType::LessEqual => write!(f, "LESS_EQUAL"),
             TokenType::Greater => write!(f, "GREATER"),
             TokenType::GreaterEqual => write!(f, "GREATER_EQUAL"),
+            TokenType::String => write!(f, "STRING"),
             TokenType::Unknown => write!(f, "UNKNOWN"),
         }
     }

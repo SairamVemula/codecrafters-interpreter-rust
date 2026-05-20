@@ -38,42 +38,42 @@ impl Scanner {
             '\n' => {
                 self.line += 1;
             }
-            '(' => self.add_token(TokenType::LeftParen),
-            ')' => self.add_token(TokenType::RightParen),
-            '{' => self.add_token(TokenType::LeftBrace),
-            '}' => self.add_token(TokenType::RightBrace),
-            ',' => self.add_token(TokenType::Comma),
-            '.' => self.add_token(TokenType::Dot),
-            '-' => self.add_token(TokenType::Minus),
-            '+' => self.add_token(TokenType::Plus),
-            ';' => self.add_token(TokenType::Semicolon),
-            '*' => self.add_token(TokenType::Star),
+            '(' => self.add_token(TokenType::LeftParen, None),
+            ')' => self.add_token(TokenType::RightParen, None),
+            '{' => self.add_token(TokenType::LeftBrace, None),
+            '}' => self.add_token(TokenType::RightBrace, None),
+            ',' => self.add_token(TokenType::Comma, None),
+            '.' => self.add_token(TokenType::Dot, None),
+            '-' => self.add_token(TokenType::Minus, None),
+            '+' => self.add_token(TokenType::Plus, None),
+            ';' => self.add_token(TokenType::Semicolon, None),
+            '*' => self.add_token(TokenType::Star, None),
             '=' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::EqualEqual);
+                    self.add_token(TokenType::EqualEqual, None);
                 } else {
-                    self.add_token(TokenType::Equal);
+                    self.add_token(TokenType::Equal, None);
                 }
             }
             '!' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::BangEqual);
+                    self.add_token(TokenType::BangEqual, None);
                 } else {
-                    self.add_token(TokenType::Bang);
+                    self.add_token(TokenType::Bang, None);
                 }
             }
             '<' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::LessEqual);
+                    self.add_token(TokenType::LessEqual, None);
                 } else {
-                    self.add_token(TokenType::Less);
+                    self.add_token(TokenType::Less, None);
                 }
             }
             '>' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::GreaterEqual);
+                    self.add_token(TokenType::GreaterEqual, None);
                 } else {
-                    self.add_token(TokenType::Greater);
+                    self.add_token(TokenType::Greater, None);
                 }
             }
             '/' => {
@@ -82,10 +82,11 @@ impl Scanner {
                         self.next();
                     }
                 } else {
-                    self.add_token(TokenType::Slash);
+                    self.add_token(TokenType::Slash, None);
                 }
             }
             ' ' | '\r' | '\t' => {}
+            '"' => self.string(),
             _ => {
                 eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
                 self.exit_code = 65;
@@ -94,11 +95,36 @@ impl Scanner {
         self.start = self.current;
     }
 
-    fn add_token(&mut self, _type: TokenType) {
+    fn string(&mut self) {
+        while self.peek() != '"' && !self.is_at_end() {
+            if self.peek() == '\n' {
+                self.current += 1;
+            }
+            self.next();
+        }
+
+        if self.is_at_end() {
+            self.exit_code = 65;
+            eprintln!("[line {}] Error: Unterminated string.", self.line);
+            return
+        }
+
+        self.next();
+        self.add_token(
+            TokenType::String,
+            Some(
+                self.source[self.start + 1..self.current - 1]
+                    .iter()
+                    .collect(),
+            ),
+        );
+    }
+
+    fn add_token(&mut self, _type: TokenType, literal: Option<String>) {
         let token = Token::new(
             _type,
             self.source[self.start..self.current].iter().collect(),
-            None,
+            literal,
             self.line,
         );
         self.tokens.push(token);
