@@ -47,3 +47,5 @@ fn main() {
         }
     }
 }
+
+// testing cmd = ../interpreter-tester/test-stage.bat mp7

@@ -51,9 +51,16 @@ impl Scanner {
             '/' => self.add_token(TokenType::Slash),
             '=' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::Equal_Equal);
+                    self.add_token(TokenType::EqualEqual);
                 } else {
                     self.add_token(TokenType::Equal);
+                }
+            }
+            '!' => {
+                if self.matches('=') {
+                    self.add_token(TokenType::BangEqual);
+                } else {
+                    self.add_token(TokenType::Bang);
                 }
             }
             _ => {
