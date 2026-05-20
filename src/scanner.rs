@@ -85,6 +85,7 @@ impl Scanner {
                     self.add_token(TokenType::Slash);
                 }
             }
+            ' ' | '\r' | '\t' => {}
             _ => {
                 eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
                 self.exit_code = 65;
