@@ -105,7 +105,8 @@ impl Scanner {
         while self.peek().is_alphanumeric() || self.peek() == '_' && !self.is_at_end() {
             self.next();
         }
-        self.add_token(TokenType::Identifier, Literal::Null);
+        let str: String = self.source[self.start..self.current].iter().collect();
+        self.add_token(TokenType::parse(str), Literal::Null);
     }
 
     fn number(&mut self) {
