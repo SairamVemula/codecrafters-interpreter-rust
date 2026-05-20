@@ -26,6 +26,8 @@ pub enum TokenType {
     String,
     Number,
 
+    Identifier,
+
     Eof,
     Unknown,
 }
@@ -55,6 +57,7 @@ impl Display for TokenType {
             TokenType::GreaterEqual => write!(f, "GREATER_EQUAL"),
             TokenType::String => write!(f, "STRING"),
             TokenType::Number => write!(f, "NUMBER"),
+            TokenType::Identifier => write!(f, "IDENTIFIER"),
             TokenType::Unknown => write!(f, "UNKNOWN"),
         }
     }

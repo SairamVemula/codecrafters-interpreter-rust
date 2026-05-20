@@ -90,6 +90,8 @@ impl Scanner {
             _ => {
                 if ch.is_numeric() {
                     self.number();
+                } else if ch.is_alphabetic() || ch == '_' {
+                    self.identifier();
                 } else {
                     eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
                     self.exit_code = 65;
@@ -97,6 +99,13 @@ impl Scanner {
             }
         };
         self.start = self.current;
+    }
+
+    fn identifier(&mut self) {
+        while self.peek().is_alphanumeric() || self.peek() == '_' && !self.is_at_end() {
+            self.next();
+        }
+        self.add_token(TokenType::Identifier, Literal::Null);
     }
 
     fn number(&mut self) {
