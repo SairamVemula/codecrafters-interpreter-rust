@@ -48,7 +48,6 @@ impl Scanner {
             '+' => self.add_token(TokenType::Plus),
             ';' => self.add_token(TokenType::Semicolon),
             '*' => self.add_token(TokenType::Star),
-            '/' => self.add_token(TokenType::Slash),
             '=' => {
                 if self.matches('=') {
                     self.add_token(TokenType::EqualEqual);
@@ -77,6 +76,15 @@ impl Scanner {
                     self.add_token(TokenType::Greater);
                 }
             }
+            '/' => {
+                if self.matches('/') {
+                    while self.peek() != '\n' && !self.is_at_end() {
+                        self.next();
+                    }
+                } else {
+                    self.add_token(TokenType::Slash);
+                }
+            }
             _ => {
                 eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
                 self.exit_code = 65;
@@ -99,6 +107,12 @@ impl Scanner {
         let ch = self.source[self.current];
         self.current += 1;
         ch
+    }
+    fn peek(&self) -> char {
+        if self.is_at_end() {
+            return '\0';
+        }
+        return self.source[self.current];
     }
 
     fn matches(&mut self, ch: char) -> bool {
