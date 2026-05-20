@@ -31,7 +31,7 @@ fn main() {
 
             // TODO: Uncomment the code below to pass the first stage
             if !file_contents.is_empty() {
-                // eprintln!("file_contents = {file_contents}");
+                eprintln!("file_contents = {file_contents}");
                 let mut scanner = Scanner::new(file_contents);
                 let tokens = scanner.scan_tokens();
                 // println!("{:?}", tokens);
