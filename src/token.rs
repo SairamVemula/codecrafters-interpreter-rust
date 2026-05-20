@@ -24,6 +24,7 @@ pub enum TokenType {
     GreaterEqual,
 
     String,
+    Number,
 
     Eof,
     Unknown,
@@ -53,6 +54,7 @@ impl Display for TokenType {
             TokenType::Greater => write!(f, "GREATER"),
             TokenType::GreaterEqual => write!(f, "GREATER_EQUAL"),
             TokenType::String => write!(f, "STRING"),
+            TokenType::Number => write!(f, "NUMBER"),
             TokenType::Unknown => write!(f, "UNKNOWN"),
         }
     }
@@ -62,12 +64,29 @@ impl Display for TokenType {
 pub struct Token {
     _type: TokenType,
     lexeme: String,
-    literal: Option<String>,
+    literal: Literal,
     line: usize,
 }
 
+#[derive(Clone, Debug)]
+pub enum Literal {
+    Null,
+    String(String),
+    Number(f64),
+}
+
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Literal::String(s) => write!(f, "{s}"),
+            Literal::Number(n) => write!(f, "{:?}", n),
+            Literal::Null => write!(f, "null"),
+        }
+    }
+}
+
 impl Token {
-    pub fn new(_type: TokenType, lexeme: String, literal: Option<String>, line: usize) -> Self {
+    pub fn new(_type: TokenType, lexeme: String, literal: Literal, line: usize) -> Self {
         Self {
             _type,
             lexeme,
@@ -79,12 +98,6 @@ impl Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {} {}",
-            self._type,
-            self.lexeme,
-            self.literal.clone().unwrap_or("null".to_string())
-        )
+        write!(f, "{} {} {}", self._type, self.lexeme, self.literal)
     }
 }

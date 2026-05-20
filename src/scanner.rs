@@ -1,4 +1,4 @@
-use crate::token::{Token, TokenType};
+use crate::token::{Literal, Token, TokenType};
 
 pub struct Scanner {
     source: Vec<char>,
@@ -27,7 +27,7 @@ impl Scanner {
         }
 
         self.tokens
-            .push(Token::new(TokenType::Eof, "".to_string(), None, 0));
+            .push(Token::new(TokenType::Eof, "".to_string(), Literal::Null, 0));
         &self.tokens
     }
 
@@ -38,42 +38,42 @@ impl Scanner {
             '\n' => {
                 self.line += 1;
             }
-            '(' => self.add_token(TokenType::LeftParen, None),
-            ')' => self.add_token(TokenType::RightParen, None),
-            '{' => self.add_token(TokenType::LeftBrace, None),
-            '}' => self.add_token(TokenType::RightBrace, None),
-            ',' => self.add_token(TokenType::Comma, None),
-            '.' => self.add_token(TokenType::Dot, None),
-            '-' => self.add_token(TokenType::Minus, None),
-            '+' => self.add_token(TokenType::Plus, None),
-            ';' => self.add_token(TokenType::Semicolon, None),
-            '*' => self.add_token(TokenType::Star, None),
+            '(' => self.add_token(TokenType::LeftParen, Literal::Null),
+            ')' => self.add_token(TokenType::RightParen, Literal::Null),
+            '{' => self.add_token(TokenType::LeftBrace, Literal::Null),
+            '}' => self.add_token(TokenType::RightBrace, Literal::Null),
+            ',' => self.add_token(TokenType::Comma, Literal::Null),
+            '.' => self.add_token(TokenType::Dot, Literal::Null),
+            '-' => self.add_token(TokenType::Minus, Literal::Null),
+            '+' => self.add_token(TokenType::Plus, Literal::Null),
+            ';' => self.add_token(TokenType::Semicolon, Literal::Null),
+            '*' => self.add_token(TokenType::Star, Literal::Null),
             '=' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::EqualEqual, None);
+                    self.add_token(TokenType::EqualEqual, Literal::Null);
                 } else {
-                    self.add_token(TokenType::Equal, None);
+                    self.add_token(TokenType::Equal, Literal::Null);
                 }
             }
             '!' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::BangEqual, None);
+                    self.add_token(TokenType::BangEqual, Literal::Null);
                 } else {
-                    self.add_token(TokenType::Bang, None);
+                    self.add_token(TokenType::Bang, Literal::Null);
                 }
             }
             '<' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::LessEqual, None);
+                    self.add_token(TokenType::LessEqual, Literal::Null);
                 } else {
-                    self.add_token(TokenType::Less, None);
+                    self.add_token(TokenType::Less, Literal::Null);
                 }
             }
             '>' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::GreaterEqual, None);
+                    self.add_token(TokenType::GreaterEqual, Literal::Null);
                 } else {
-                    self.add_token(TokenType::Greater, None);
+                    self.add_token(TokenType::Greater, Literal::Null);
                 }
             }
             '/' => {
@@ -82,17 +82,35 @@ impl Scanner {
                         self.next();
                     }
                 } else {
-                    self.add_token(TokenType::Slash, None);
+                    self.add_token(TokenType::Slash, Literal::Null);
                 }
             }
             ' ' | '\r' | '\t' => {}
             '"' => self.string(),
             _ => {
-                eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
-                self.exit_code = 65;
+                if ch.is_numeric() {
+                    self.number();
+                } else {
+                    eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
+                    self.exit_code = 65;
+                }
             }
         };
         self.start = self.current;
+    }
+
+    fn number(&mut self) {
+        while self.peek().is_numeric() && !self.is_at_end() {
+            self.next();
+        }
+        if self.peek() == '.' && self.peek_next().is_numeric() {
+            self.next();
+        while self.peek().is_numeric() && !self.is_at_end() {
+            self.next();
+        }
+        }
+        let str: String = self.source[self.start..self.current].iter().collect();
+        self.add_token(TokenType::Number, Literal::Number(str.parse::<f64>().unwrap()));
     }
 
     fn string(&mut self) {
@@ -106,13 +124,13 @@ impl Scanner {
         if self.is_at_end() {
             self.exit_code = 65;
             eprintln!("[line {}] Error: Unterminated string.", self.line);
-            return
+            return;
         }
 
         self.next();
         self.add_token(
             TokenType::String,
-            Some(
+            Literal::String(
                 self.source[self.start + 1..self.current - 1]
                     .iter()
                     .collect(),
@@ -120,7 +138,7 @@ impl Scanner {
         );
     }
 
-    fn add_token(&mut self, _type: TokenType, literal: Option<String>) {
+    fn add_token(&mut self, _type: TokenType, literal: Literal) {
         let token = Token::new(
             _type,
             self.source[self.start..self.current].iter().collect(),
@@ -134,6 +152,12 @@ impl Scanner {
         let ch = self.source[self.current];
         self.current += 1;
         ch
+    }
+    fn peek_next(&self) -> char {
+        if self.current + 1 >= self.source.len() {
+            return '\0';
+        }
+        return self.source[self.current+1];
     }
     fn peek(&self) -> char {
         if self.is_at_end() {
