@@ -25,12 +25,13 @@ fn main() {
 
             let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
                 eprintln!("Failed to read file {}", filename);
+                // "<<<=>>>=".to_string()
                 String::new()
             });
 
             // TODO: Uncomment the code below to pass the first stage
             if !file_contents.is_empty() {
-                // println!("{file_contents}");
+                // eprintln!("file_contents = {file_contents}");
                 let mut scanner = Scanner::new(file_contents);
                 let tokens = scanner.scan_tokens();
                 // println!("{:?}", tokens);

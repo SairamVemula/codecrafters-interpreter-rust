@@ -63,6 +63,20 @@ impl Scanner {
                     self.add_token(TokenType::Bang);
                 }
             }
+            '<' => {
+                if self.matches('=') {
+                    self.add_token(TokenType::LessEqual);
+                } else {
+                    self.add_token(TokenType::Less);
+                }
+            }
+            '>' => {
+                if self.matches('=') {
+                    self.add_token(TokenType::GreaterEqual);
+                } else {
+                    self.add_token(TokenType::Greater);
+                }
+            }
             _ => {
                 eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
                 self.exit_code = 65;
