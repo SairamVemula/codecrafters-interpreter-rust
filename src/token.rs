@@ -6,6 +6,13 @@ pub enum TokenType {
     RightParen,
     LeftBrace,
     RightBrace,
+    Comma,
+    Dot,
+    Minus,
+    Plus,
+    Semicolon,
+    Star,
+    Slash,
 
     Eof,
     Unknown,
@@ -19,6 +26,14 @@ impl Display for TokenType {
             TokenType::LeftBrace => write!(f, "LEFT_BRACE"),
             TokenType::RightBrace => write!(f, "RIGHT_BRACE"),
             TokenType::Eof => write!(f, "EOF"),
+            TokenType::Comma => write!(f, "COMMA"),
+            TokenType::Dot => write!(f, "DOT"),
+            TokenType::Minus => write!(f, "MINUS"),
+            TokenType::Plus => write!(f, "PLUS"),
+            TokenType::Semicolon => write!(f, "SEMICOLON"),
+            TokenType::Star => write!(f, "STAR"),
+            TokenType::Slash => write!(f, "SLASH"),
+
             TokenType::Unknown => write!(f, "UNKNOWN"),
         }
     }
@@ -31,6 +46,13 @@ impl TokenType {
             ')' => TokenType::RightParen,
             '{' => TokenType::LeftBrace,
             '}' => TokenType::RightBrace,
+            ',' => TokenType::Comma,
+            '.' => TokenType::Dot,
+            '-' => TokenType::Minus,
+            '+' => TokenType::Plus,
+            ';' => TokenType::Semicolon,
+            '*' => TokenType::Star,
+            '/' => TokenType::Slash,
             _ => TokenType::Unknown,
         }
     }
