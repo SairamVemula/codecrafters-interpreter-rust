@@ -6,7 +6,6 @@ use crate::{
 pub struct AstPrinter {}
 
 impl ExprVisitor for AstPrinter {
-
     fn visit_binary(&self, expr: &Binary) -> String {
         self.parenthesize(&expr.operator.lexeme, &[&expr.left, &expr.right])
     }
@@ -19,7 +18,7 @@ impl ExprVisitor for AstPrinter {
         match &expr {
             Literal::Null => "nil".into(),
             Literal::String(s) => s.clone(),
-            Literal::Number(n) => n.to_string(),
+            Literal::Number(n) => format!("{:?}", n),
             Literal::Boolean(b) => b.to_string(),
         }
     }
