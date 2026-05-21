@@ -1,7 +1,4 @@
-use crate::{
-    expr::{Binary, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Unary},
-    token::{self},
-};
+use crate::expr::{Binary, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Unary};
 
 pub struct AstPrinter {}
 

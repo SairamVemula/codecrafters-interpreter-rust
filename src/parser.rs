@@ -131,7 +131,7 @@ impl<'a> Parser<'a> {
         Ok(unary)
     }
     fn unary(&mut self) -> Result<ExprEnum> {
-        while self.matches(vec![TokenType::Slash, TokenType::Star]) {
+        while self.matches(vec![TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().clone();
             let right = self.unary()?;
             return Ok(ExprEnum::Unary(Unary::new(operator, Box::new(right))));
