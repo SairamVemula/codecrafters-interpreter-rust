@@ -73,7 +73,7 @@ fn main() {
                     }
                     Err(_e) => {
                         eprintln!("{}", _e.to_string());
-                        process::exit(scanner.exit_code);
+                        process::exit(65);
                     }
                 }
                 process::exit(scanner.exit_code);
