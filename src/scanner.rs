@@ -1,4 +1,7 @@
-use crate::token::{Literal, Token, TokenType};
+use crate::{
+    expr::Literal,
+    token::{Token, TokenType},
+};
 
 pub struct Scanner {
     source: Vec<char>,
@@ -21,7 +24,7 @@ impl Scanner {
         }
     }
 
-    pub fn scan_tokens(&mut self) -> &Vec<Token> {
+    pub fn parse(&mut self) -> &Vec<Token> {
         while !self.is_at_end() {
             self.scan_token();
         }
@@ -106,7 +109,13 @@ impl Scanner {
             self.next();
         }
         let str: String = self.source[self.start..self.current].iter().collect();
-        self.add_token(TokenType::parse(str), Literal::Null);
+        let _type = TokenType::parse(str);
+        let literal = match _type {
+            TokenType::True => Literal::Boolean(true),
+            TokenType::False => Literal::Boolean(false),
+            _ => Literal::Null,
+        };
+        self.add_token(_type, literal);
     }
 
     fn number(&mut self) {
@@ -115,12 +124,15 @@ impl Scanner {
         }
         if self.peek() == '.' && self.peek_next().is_numeric() {
             self.next();
-        while self.peek().is_numeric() && !self.is_at_end() {
-            self.next();
-        }
+            while self.peek().is_numeric() && !self.is_at_end() {
+                self.next();
+            }
         }
         let str: String = self.source[self.start..self.current].iter().collect();
-        self.add_token(TokenType::Number, Literal::Number(str.parse::<f64>().unwrap()));
+        self.add_token(
+            TokenType::Number,
+            Literal::Number(str.parse::<f64>().unwrap()),
+        );
     }
 
     fn string(&mut self) {
@@ -167,7 +179,7 @@ impl Scanner {
         if self.current + 1 >= self.source.len() {
             return '\0';
         }
-        return self.source[self.current+1];
+        return self.source[self.current + 1];
     }
     fn peek(&self) -> char {
         if self.is_at_end() {

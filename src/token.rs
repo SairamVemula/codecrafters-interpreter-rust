@@ -1,6 +1,8 @@
 use std::fmt::Display;
 
-#[derive(Clone, Copy, Debug)]
+use crate::expr::Literal;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -120,29 +122,12 @@ impl TokenType {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Token {
-    _type: TokenType,
-    lexeme: String,
-    literal: Literal,
-    line: usize,
-}
-
-#[derive(Clone, Debug)]
-pub enum Literal {
-    Null,
-    String(String),
-    Number(f64),
-}
-
-impl Display for Literal {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Literal::String(s) => write!(f, "{s}"),
-            Literal::Number(n) => write!(f, "{:?}", n),
-            Literal::Null => write!(f, "null"),
-        }
-    }
+    pub _type: TokenType,
+    pub lexeme: String,
+    pub literal: Literal,
+    pub line: usize,
 }
 
 impl Token {
