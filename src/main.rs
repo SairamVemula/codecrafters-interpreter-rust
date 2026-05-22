@@ -104,8 +104,16 @@ fn main() {
                 match result {
                     Ok(ex) => {
                         let interpreter = Interpreter::new();
-                        let evaluate = interpreter.evaluate(&Box::new(ex)).unwrap();
-                        println!("{}", evaluate);
+                        let result = interpreter.evaluate(&Box::new(ex));
+                        match result {
+                            Ok(evaluate) => {
+                                println!("{}", evaluate);
+                            }
+                            Err(_e) => {
+                                eprintln!("{}", _e.to_string());
+                                process::exit(70);
+                            }
+                        }
                     }
                     Err(_e) => {
                         eprintln!("{}", _e.to_string());

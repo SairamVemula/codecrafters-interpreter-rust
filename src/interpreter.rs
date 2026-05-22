@@ -51,10 +51,30 @@ impl ExprVisitor for Interpreter {
                 }
                 _ => Err(anyhow!("Operands must be numbers")),
             },
-            // TokenType::Plus => match right {
-            //     Literal::Boolean(n) => Ok(Literal::Boolean(!n)),
-            //     _ => Err(anyhow!("Unary not implemented")),
-            // },
+            TokenType::Greater => match (left, right) {
+                (Literal::Number(a, _), Literal::Number(b, _)) => Ok(Literal::Boolean(a > b)),
+                _ => Err(anyhow!("Operands must be numbers")),
+            },
+
+            TokenType::GreaterEqual => match (left, right) {
+                (Literal::Number(a, _), Literal::Number(b, _)) => Ok(Literal::Boolean(a >= b)),
+                _ => Err(anyhow!("Operands must be numbers")),
+            },
+
+            TokenType::Less => match (left, right) {
+                (Literal::Number(a, _), Literal::Number(b, _)) => Ok(Literal::Boolean(a < b)),
+                _ => Err(anyhow!("Operands must be numbers")),
+            },
+
+            TokenType::LessEqual => match (left, right) {
+                (Literal::Number(a, _), Literal::Number(b, _)) => Ok(Literal::Boolean(a <= b)),
+                _ => Err(anyhow!("Operands must be numbers")),
+            },
+
+            TokenType::EqualEqual => Ok(Literal::Boolean(left == right)),
+
+            TokenType::BangEqual => Ok(Literal::Boolean(left != right)),
+
             _ => Err(anyhow!("Unary operater not implemented")),
         }
     }
