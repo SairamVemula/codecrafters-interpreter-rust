@@ -43,8 +43,5 @@ pub enum RuntimeError {
     #[error("Division by zero")]
     DivisionByZero,
     #[error("Unary not implemented for {operator} and {operand}")]
-    UnaryTypeMismatch {
-        operator: String,
-        operand: String,
-    },
+    UnaryTypeMismatch { operator: String, operand: String },
 }

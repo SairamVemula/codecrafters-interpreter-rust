@@ -2,7 +2,10 @@ use anyhow::{Ok, Result};
 
 use crate::{
     error::RuntimeError,
-    expr::{Binary, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Unary},
+    expr::{
+        Binary, Expr, ExprEnum, ExprVisitor, Expression, Grouping, Literal, Print, Stmt, StmtEnum,
+        StmtVisitor, Unary,
+    },
     token::TokenType,
 };
 
@@ -126,11 +129,37 @@ impl ExprVisitor for Interpreter {
     }
 }
 
+impl StmtVisitor for Interpreter {
+    type Output = Result<()>;
+
+    fn visit_expression(&self, expr: &Expression) -> Self::Output {
+        self.evaluate(&expr.expression)?;
+        Ok(())
+    }
+
+    fn visit_print(&self, expr: &Print) -> Self::Output {
+        let result = self.evaluate(&expr.expression)?;
+        println!("{result}");
+        Ok(())
+    }
+}
+
 impl Interpreter {
     pub fn new() -> Self {
         Self {}
     }
     pub fn evaluate(&self, expr: &Box<ExprEnum>) -> Result<Literal> {
         expr.accept(self)
+    }
+
+    fn execute(&self, stmt: StmtEnum) -> Result<()> {
+        stmt.accept(self)
+    }
+
+    pub fn interprete(&self, statements: Vec<StmtEnum>) -> Result<()> {
+        for statement in statements {
+            self.execute(statement)?
+        }
+        Ok(())
     }
 }

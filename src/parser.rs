@@ -2,7 +2,7 @@ use anyhow::Result;
 
 use crate::{
     error::ParseError,
-    expr::{Binary, ExprEnum, Grouping, Literal, Unary},
+    expr::{ExprEnum, Literal, StmtEnum},
     token::{Token, TokenType},
 };
 
@@ -76,8 +76,33 @@ impl<'a> Parser<'a> {
 //                | "(" expression ")" ;
 
 impl<'a> Parser<'a> {
-    pub fn parse(&mut self) -> Result<ExprEnum> {
-        self.expression()
+    pub fn parse(&mut self) -> Result<Vec<StmtEnum>> {
+        let mut list = vec![];
+        while !self.is_at_end() {
+            list.push(self.statement()?);
+        }
+        Ok(list)
+    }
+
+    fn statement(&mut self) -> Result<StmtEnum> {
+        if self.peek()._type == TokenType::Print {
+            return Ok(self.print_statement()?);
+        }
+
+        Ok(self.expression_statement()?)
+    }
+
+    fn print_statement(&mut self) -> Result<StmtEnum> {
+        self.advance();
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
+        Ok(StmtEnum::new_print(expr))
+    }
+
+    fn expression_statement(&mut self) -> Result<StmtEnum> {
+        let expr = self.expression()?;
+        self.consume(TokenType::Semicolon, "Expect ';' after value.")?;
+        Ok(StmtEnum::new_expression(expr))
     }
 
     fn expression(&mut self) -> Result<ExprEnum> {
@@ -90,8 +115,7 @@ impl<'a> Parser<'a> {
         while self.matches(vec![TokenType::EqualEqual, TokenType::BangEqual]) {
             let operator = self.previous().clone();
             let right = self.comparison()?;
-            comparison =
-                ExprEnum::Binary(Binary::new(Box::new(comparison), operator, Box::new(right)))
+            comparison = ExprEnum::new_binary(comparison, operator, right);
         }
 
         Ok(comparison)
@@ -108,7 +132,7 @@ impl<'a> Parser<'a> {
         ]) {
             let operator = self.previous().clone();
             let right = self.term()?;
-            term = ExprEnum::Binary(Binary::new(Box::new(term), operator, Box::new(right)))
+            term = ExprEnum::new_binary(term, operator, right);
         }
 
         Ok(term)
@@ -120,7 +144,7 @@ impl<'a> Parser<'a> {
         while self.matches(vec![TokenType::Minus, TokenType::Plus]) {
             let operator = self.previous().clone();
             let right = self.factor()?;
-            factor = ExprEnum::Binary(Binary::new(Box::new(factor), operator, Box::new(right)))
+            factor = ExprEnum::new_binary(factor, operator, right);
         }
 
         Ok(factor)
@@ -131,7 +155,7 @@ impl<'a> Parser<'a> {
         while self.matches(vec![TokenType::Slash, TokenType::Star]) {
             let operator = self.previous().clone();
             let right = self.unary()?;
-            unary = ExprEnum::Binary(Binary::new(Box::new(unary), operator, Box::new(right)))
+            unary = ExprEnum::new_binary(unary, operator, right);
         }
 
         Ok(unary)
@@ -140,7 +164,7 @@ impl<'a> Parser<'a> {
         while self.matches(vec![TokenType::Bang, TokenType::Minus]) {
             let operator = self.previous().clone();
             let right = self.unary()?;
-            return Ok(ExprEnum::Unary(Unary::new(operator, Box::new(right))));
+            return Ok(ExprEnum::new_unary(operator, right));
         }
 
         self.primary()
@@ -154,7 +178,7 @@ impl<'a> Parser<'a> {
             TokenType::LeftParen => {
                 let expr = self.expression()?;
                 self.consume(TokenType::RightParen, "Expected ')' after expression")?;
-                Ok(ExprEnum::Grouping(Grouping::new(Box::new(expr))))
+                Ok(ExprEnum::new_grouping(expr))
             }
             _ => Err(ParseError::ExpectedExpression {
                 line: token.line,

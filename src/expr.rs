@@ -1,3 +1,4 @@
+use core::fmt;
 use std::fmt::{Debug, Display};
 
 use crate::token::Token;
@@ -21,6 +22,18 @@ pub enum ExprEnum {
     Unary(Unary),
 }
 
+impl ExprEnum {
+    pub fn new_binary(left: ExprEnum, operator: Token, right: ExprEnum) -> Self {
+        Self::Binary(Binary::new(left, operator, right))
+    }
+    pub fn new_grouping(expr: ExprEnum) -> Self {
+        Self::Grouping(Grouping::new(expr))
+    }
+    pub fn new_unary(operator: Token, right: ExprEnum) -> Self {
+        Self::Unary(Unary::new(operator, right))
+    }
+}
+
 impl Expr for ExprEnum {
     fn accept<T>(&self, visitor: &dyn ExprVisitor<Output = T>) -> T {
         match self {
@@ -40,11 +53,11 @@ pub struct Binary {
 }
 
 impl Binary {
-    pub fn new(left: Box<ExprEnum>, operator: Token, right: Box<ExprEnum>) -> Self {
+    pub fn new(left: ExprEnum, operator: Token, right: ExprEnum) -> Self {
         Self {
-            left,
+            left: Box::new(left),
             operator,
-            right,
+            right: Box::new(right),
         }
     }
 }
@@ -55,8 +68,10 @@ pub struct Grouping {
 }
 
 impl Grouping {
-    pub fn new(expression: Box<ExprEnum>) -> Self {
-        Self { expression }
+    pub fn new(expr: ExprEnum) -> Self {
+        Self {
+            expression: Box::new(expr),
+        }
     }
 }
 
@@ -85,7 +100,91 @@ pub struct Unary {
 }
 
 impl Unary {
-    pub fn new(operator: Token, right: Box<ExprEnum>) -> Self {
-        Self { operator, right }
+    pub fn new(operator: Token, right: ExprEnum) -> Self {
+        Self {
+            operator,
+            right: Box::new(right),
+        }
+    }
+}
+
+pub trait StmtVisitor {
+    type Output;
+    fn visit_expression(&self, expr: &Expression) -> Self::Output;
+    fn visit_print(&self, expr: &Print) -> Self::Output;
+}
+pub trait Stmt: Debug {
+    fn accept<T>(&self, visitor: &dyn StmtVisitor<Output = T>) -> T;
+}
+
+impl Stmt for StmtEnum {
+    fn accept<T>(&self, visitor: &dyn StmtVisitor<Output = T>) -> T {
+        match self {
+            StmtEnum::Expression(expr) => visitor.visit_expression(expr),
+            StmtEnum::Print(expr) => visitor.visit_print(expr),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum StmtEnum {
+    Expression(Expression),
+    Print(Print),
+}
+
+impl StmtEnum {
+    pub fn new_expression(expr: ExprEnum) -> Self {
+        Self::Expression(Expression::new(expr))
+    }
+    pub fn new_print(expr: ExprEnum) -> Self {
+        Self::Print(Print::new(expr))
+    }
+}
+
+#[derive(Debug)]
+pub struct Expression {
+    pub expression: Box<ExprEnum>,
+}
+
+impl Expression {
+    pub fn new(expression: ExprEnum) -> Self {
+        Self {
+            expression: Box::new(expression),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct Print {
+    pub expression: Box<ExprEnum>,
+}
+
+impl Print {
+    pub fn new(expression: ExprEnum) -> Self {
+        Self {
+            expression: Box::new(expression),
+        }
+    }
+}
+
+impl fmt::Display for ExprEnum {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ExprEnum::Literal(l) => write!(f, "{l}"),
+            ExprEnum::Grouping(g) => write!(f, "(group {})", g.expression),
+            ExprEnum::Binary(b) => write!(f, "({} {} {})", b.operator.lexeme, b.left, b.right),
+            ExprEnum::Unary(u) => {
+                write!(f, "({} {})", u.operator.lexeme, u.right)
+            }
+        }
+    }
+}
+
+impl fmt::Display for StmtEnum {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            StmtEnum::Expression(e) => writeln!(f, "{}", e.expression),
+            StmtEnum::Print(e) => writeln!(f, "{}", e.expression),
+        }
     }
 }
