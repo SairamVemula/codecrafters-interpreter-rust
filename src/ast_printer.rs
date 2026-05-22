@@ -3,24 +3,25 @@ use crate::expr::{Binary, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Unary}
 pub struct AstPrinter {}
 
 impl ExprVisitor for AstPrinter {
-    fn visit_binary(&self, expr: &Binary) -> String {
+    type Output = String;
+    fn visit_binary(&self, expr: &Binary) -> Self::Output {
         self.parenthesize(&expr.operator.lexeme, &[&expr.left, &expr.right])
     }
 
-    fn visit_grouping(&self, expr: &Grouping) -> String {
+    fn visit_grouping(&self, expr: &Grouping) -> Self::Output {
         self.parenthesize("group", &[&expr.expression])
     }
 
-    fn visit_literal(&self, expr: &Literal) -> String {
+    fn visit_literal(&self, expr: &Literal) -> Self::Output {
         match &expr {
             Literal::Null => "nil".into(),
             Literal::String(s) => s.clone(),
-            Literal::Number(n) => format!("{:?}", n),
+            Literal::Number(_, s) => format!("{s}"),
             Literal::Boolean(b) => b.to_string(),
         }
     }
 
-    fn visit_unary(&self, expr: &Unary) -> String {
+    fn visit_unary(&self, expr: &Unary) -> Self::Output {
         self.parenthesize(&expr.operator.lexeme, &[&expr.right])
     }
 }

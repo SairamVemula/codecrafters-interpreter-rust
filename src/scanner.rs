@@ -131,7 +131,7 @@ impl Scanner {
         let str: String = self.source[self.start..self.current].iter().collect();
         self.add_token(
             TokenType::Number,
-            Literal::Number(str.parse::<f64>().unwrap()),
+            Literal::Number(str.parse::<f64>().unwrap(), str),
         );
     }
 

@@ -1,15 +1,16 @@
 use std::fmt::{Debug, Display};
 
-use crate::token::{self, Token};
+use crate::token::Token;
 
 pub trait ExprVisitor {
-    fn visit_binary(&self, expr: &Binary) -> String;
-    fn visit_grouping(&self, expr: &Grouping) -> String;
-    fn visit_literal(&self, expr: &Literal) -> String;
-    fn visit_unary(&self, expr: &Unary) -> String;
+    type Output;
+    fn visit_binary(&self, expr: &Binary) -> Self::Output;
+    fn visit_grouping(&self, expr: &Grouping) -> Self::Output;
+    fn visit_literal(&self, expr: &Literal) -> Self::Output;
+    fn visit_unary(&self, expr: &Unary) -> Self::Output;
 }
-pub trait Expr {
-    fn accept(&self, visitor: &dyn ExprVisitor) -> String;
+pub trait Expr: Debug {
+    fn accept<T>(&self, visitor: &dyn ExprVisitor<Output = T>) -> T;
 }
 
 #[derive(Debug)]
@@ -21,7 +22,7 @@ pub enum ExprEnum {
 }
 
 impl Expr for ExprEnum {
-    fn accept(&self, visitor: &dyn ExprVisitor) -> String {
+    fn accept<T>(&self, visitor: &dyn ExprVisitor<Output = T>) -> T {
         match self {
             ExprEnum::Binary(expr) => visitor.visit_binary(expr),
             ExprEnum::Grouping(expr) => visitor.visit_grouping(expr),
@@ -63,7 +64,7 @@ impl Grouping {
 pub enum Literal {
     Null,
     String(String),
-    Number(f64),
+    Number(f64, String),
     Boolean(bool),
 }
 
@@ -71,8 +72,8 @@ impl Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Literal::String(s) => write!(f, "{s}"),
-            Literal::Number(n) => write!(f, "{:?}", n),
-            Literal::Null => write!(f, "null"),
+            Literal::Number(_, s) => write!(f, "{s}"),
+            Literal::Null => write!(f, "nil"),
             Literal::Boolean(b) => write!(f, "{b}"),
         }
     }
