@@ -1,6 +1,7 @@
-use anyhow::{Ok, Result, anyhow};
+use anyhow::{Ok, Result};
 
 use crate::{
+    error::RuntimeError,
     expr::{Binary, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Unary},
     token::TokenType,
 };
@@ -22,7 +23,7 @@ impl ExprVisitor for Interpreter {
                 (Literal::String(a), Literal::String(b)) => {
                     Ok(Literal::String(format!("{}{}", a, b)))
                 }
-                _ => Err(anyhow!("Operands must be two numbers or two strings")),
+                _ => Err(RuntimeError::PlusTypeMismatch.into()),
             },
 
             TokenType::Minus => match (left, right) {
@@ -30,7 +31,7 @@ impl ExprVisitor for Interpreter {
                     let r = a - b;
                     Ok(Literal::Number(r, r.to_string()))
                 }
-                _ => Err(anyhow!("Operands must be numbers")),
+                _ => Err(RuntimeError::NonNumericOperands.into()),
             },
 
             TokenType::Star => match (left, right) {
@@ -38,44 +39,48 @@ impl ExprVisitor for Interpreter {
                     let r = a * b;
                     Ok(Literal::Number(r, r.to_string()))
                 }
-                _ => Err(anyhow!("Operands must be numbers")),
+                _ => Err(RuntimeError::NonNumericOperands.into()),
             },
 
             TokenType::Slash => match (left, right) {
                 (Literal::Number(_, _), Literal::Number(0.0, _)) => {
-                    Err(anyhow!("Division by zero"))
+                    Err(RuntimeError::DivisionByZero.into())
                 }
                 (Literal::Number(a, _), Literal::Number(b, _)) => {
                     let r = a / b;
                     Ok(Literal::Number(r, r.to_string()))
                 }
-                _ => Err(anyhow!("Operands must be numbers")),
+                _ => Err(RuntimeError::NonNumericOperands.into()),
             },
             TokenType::Greater => match (left, right) {
                 (Literal::Number(a, _), Literal::Number(b, _)) => Ok(Literal::Boolean(a > b)),
-                _ => Err(anyhow!("Operands must be numbers")),
+                _ => Err(RuntimeError::NonNumericOperands.into()),
             },
 
             TokenType::GreaterEqual => match (left, right) {
                 (Literal::Number(a, _), Literal::Number(b, _)) => Ok(Literal::Boolean(a >= b)),
-                _ => Err(anyhow!("Operands must be numbers")),
+                _ => Err(RuntimeError::NonNumericOperands.into()),
             },
 
             TokenType::Less => match (left, right) {
                 (Literal::Number(a, _), Literal::Number(b, _)) => Ok(Literal::Boolean(a < b)),
-                _ => Err(anyhow!("Operands must be numbers")),
+                _ => Err(RuntimeError::NonNumericOperands.into()),
             },
 
             TokenType::LessEqual => match (left, right) {
                 (Literal::Number(a, _), Literal::Number(b, _)) => Ok(Literal::Boolean(a <= b)),
-                _ => Err(anyhow!("Operands must be numbers")),
+                _ => Err(RuntimeError::NonNumericOperands.into()),
             },
 
             TokenType::EqualEqual => Ok(Literal::Boolean(left == right)),
 
             TokenType::BangEqual => Ok(Literal::Boolean(left != right)),
 
-            _ => Err(anyhow!("Unary operater not implemented")),
+            _ => Err(RuntimeError::UnaryTypeMismatch {
+                operator: expr.operator.to_string(),
+                operand: format!("{} {}", left, right),
+            }
+            .into()),
         }
     }
 
@@ -96,23 +101,27 @@ impl ExprVisitor for Interpreter {
                     let n = -n;
                     Ok(Literal::Number(n, n.to_string()))
                 }
-                _ => Err(anyhow!(
-                    "Unary not implemented for {} and {}",
-                    expr.operator,
-                    right
-                )),
+                _ => Err(RuntimeError::UnaryTypeMismatch {
+                    operator: expr.operator.to_string(),
+                    operand: format!("{}", right),
+                }
+                .into()),
             },
             TokenType::Bang => match right {
                 Literal::Boolean(n) => Ok(Literal::Boolean(!n)),
                 Literal::Number(n, _) => Ok(Literal::Boolean(!(n != 0.0))),
                 Literal::Null => Ok(Literal::Boolean(true)),
-                _ => Err(anyhow!(
-                    "Unary not implemented for {} and {}",
-                    expr.operator,
-                    right
-                )),
+                _ => Err(RuntimeError::UnaryTypeMismatch {
+                    operator: expr.operator.to_string(),
+                    operand: format!("{}", right),
+                }
+                .into()),
             },
-            _ => Err(anyhow!("Unary operater not implemented")),
+            _ => Err(RuntimeError::UnaryTypeMismatch {
+                operator: expr.operator.to_string(),
+                operand: format!("{}", right),
+            }
+            .into()),
         }
     }
 }

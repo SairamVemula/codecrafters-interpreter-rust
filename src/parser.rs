@@ -1,7 +1,8 @@
-use anyhow::{Result, anyhow};
+use anyhow::Result;
 
 use crate::{
-    expr::{self, Binary, ExprEnum, Grouping, Literal, Unary},
+    error::ParseError,
+    expr::{Binary, ExprEnum, Grouping, Literal, Unary},
     token::{Token, TokenType},
 };
 
@@ -50,11 +51,16 @@ impl<'a> Parser<'a> {
         return self.peek()._type == TokenType::Eof;
     }
 
-    fn consume(&mut self, token_type: TokenType, message: impl Into<String>) -> Result<&Token> {
+    fn consume(&mut self, token_type: TokenType, expected: &str) -> Result<&Token> {
         if self.check(token_type) {
             Ok(self.advance())
         } else {
-            Err(anyhow!(message.into()))
+            Err(ParseError::ExpectedToken {
+                line: self.peek().line,
+                expected: expected.to_string(),
+                found: self.peek().lexeme.clone(),
+            }
+            .into())
         }
     }
 }
@@ -150,10 +156,11 @@ impl<'a> Parser<'a> {
                 self.consume(TokenType::RightParen, "Expected ')' after expression")?;
                 Ok(ExprEnum::Grouping(Grouping::new(Box::new(expr))))
             }
-            _ => Err(anyhow!(format!(
-                "[line {}] Error: Expected expression, got {}",
-                token.line, token.lexeme
-            ))),
+            _ => Err(ParseError::ExpectedExpression {
+                line: token.line,
+                got: token.lexeme.clone(),
+            }
+            .into()),
         }
     }
 }

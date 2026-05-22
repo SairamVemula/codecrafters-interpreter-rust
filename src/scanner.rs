@@ -1,4 +1,5 @@
 use crate::{
+    error::EXIT_SCAN_ERROR,
     expr::Literal,
     token::{Token, TokenType},
 };
@@ -97,7 +98,7 @@ impl Scanner {
                     self.identifier();
                 } else {
                     eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
-                    self.exit_code = 65;
+                    self.exit_code = EXIT_SCAN_ERROR;
                 }
             }
         };
@@ -129,10 +130,15 @@ impl Scanner {
             }
         }
         let str: String = self.source[self.start..self.current].iter().collect();
-        self.add_token(
-            TokenType::Number,
-            Literal::Number(str.parse::<f64>().unwrap(), str),
-        );
+        match str.parse::<f64>() {
+            Ok(value) => {
+                self.add_token(TokenType::Number, Literal::Number(value, str));
+            }
+            Err(_) => {
+                eprintln!("[line {}] Error: Invalid number: {}", self.line, str);
+                self.exit_code = EXIT_SCAN_ERROR;
+            }
+        }
     }
 
     fn string(&mut self) {
@@ -144,7 +150,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            self.exit_code = 65;
+            self.exit_code = EXIT_SCAN_ERROR;
             eprintln!("[line {}] Error: Unterminated string.", self.line);
             return;
         }
