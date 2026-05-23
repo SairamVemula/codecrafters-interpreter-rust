@@ -12,6 +12,7 @@ mod interpreter;
 mod parser;
 mod scanner;
 mod token;
+mod environment;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -29,7 +30,7 @@ fn main() {
         String::new()
     });
 
-    eprintln!("file_contents => {}", file_contents);
+    // eprintln!("file_contents => `{}`", file_contents);
 
     match command.as_str() {
         "tokenize" => {
@@ -49,10 +50,10 @@ fn main() {
                 let mut scanner = Scanner::new(file_contents);
                 let tokens = scanner.parse();
                 let mut parser = Parser::new(tokens);
-                let result = parser.parse();
+                let result = parser.parse_expression();
                 match result {
-                    Ok(statements) => {
-                        statements.iter().for_each(|s| println!("{s}"));
+                    Ok(expr) => {
+                        println!("{expr}")
                     }
                     Err(e) => {
                         eprintln!("{}", e.to_string());
@@ -72,8 +73,7 @@ fn main() {
                 let result = parser.parse();
                 match result {
                     Ok(statements) => {
-                        // println!("{:?}", statements);
-                        let interpreter = Interpreter::new();
+                        let mut interpreter = Interpreter::new();
                         let result = interpreter.interprete(statements);
                         match result {
                             Err(e) => {

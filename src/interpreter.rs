@@ -1,19 +1,24 @@
+use std::{cell::RefCell, rc::Rc};
+
 use anyhow::{Ok, Result};
 
 use crate::{
+    environment::Environment,
     error::RuntimeError,
     expr::{
-        Binary, Expr, ExprEnum, ExprVisitor, Expression, Grouping, Literal, Print, Stmt, StmtEnum,
-        StmtVisitor, Unary,
+        Assign, Binary, Block, Expr, ExprEnum, ExprVisitor, Expression, Grouping, Literal, Print,
+        Stmt, StmtEnum, StmtVisitor, Unary, Var, Variable,
     },
     token::TokenType,
 };
 
-pub struct Interpreter {}
+pub struct Interpreter {
+    environment: Rc<RefCell<Environment>>,
+}
 
 impl ExprVisitor for Interpreter {
     type Output = Result<Literal>;
-    fn visit_binary(&self, expr: &Binary) -> Self::Output {
+    fn visit_binary(&mut self, expr: &Binary) -> Self::Output {
         let left = self.evaluate(&expr.left)?;
         let right = self.evaluate(&expr.right)?;
 
@@ -87,15 +92,15 @@ impl ExprVisitor for Interpreter {
         }
     }
 
-    fn visit_grouping(&self, expr: &Grouping) -> Self::Output {
+    fn visit_grouping(&mut self, expr: &Grouping) -> Self::Output {
         self.evaluate(&expr.expression)
     }
 
-    fn visit_literal(&self, expr: &Literal) -> Self::Output {
+    fn visit_literal(&mut self, expr: &Literal) -> Self::Output {
         Ok(expr.clone())
     }
 
-    fn visit_unary(&self, expr: &Unary) -> Self::Output {
+    fn visit_unary(&mut self, expr: &Unary) -> Self::Output {
         let right = self.evaluate(&expr.right)?;
 
         match expr.operator._type {
@@ -127,39 +132,79 @@ impl ExprVisitor for Interpreter {
             .into()),
         }
     }
+
+    fn visit_variable(&mut self, expr: &Variable) -> Self::Output {
+        self.environment.borrow_mut().get(expr.name.clone())
+    }
+
+    fn visit_assign(&mut self, expr: &Assign) -> Self::Output {
+        let value = self.evaluate(&expr.value)?;
+        self.environment.borrow_mut().assign(expr.name.clone(), value.clone())?;
+        Ok(value)
+    }
 }
 
 impl StmtVisitor for Interpreter {
     type Output = Result<()>;
 
-    fn visit_expression(&self, expr: &Expression) -> Self::Output {
+    fn visit_expression(&mut self, expr: &mut Expression) -> Self::Output {
         self.evaluate(&expr.expression)?;
         Ok(())
     }
 
-    fn visit_print(&self, expr: &Print) -> Self::Output {
+    fn visit_print(&mut self, expr: &mut Print) -> Self::Output {
         let result = self.evaluate(&expr.expression)?;
         println!("{result}");
+        Ok(())
+    }
+
+    fn visit_var(&mut self, expr: &mut Var) -> Self::Output {
+        let value = if let Some(initializer) = &expr.initializer {
+            Some(self.evaluate(&initializer)?)
+        } else {
+            None
+        };
+        self.environment.borrow_mut().define(expr.name.lexeme.clone(), value);
+        Ok(())
+    }
+
+    fn visit_block(&mut self, block: &mut Block) -> Self::Output {
+        self.execute_block(&mut block.statements)?;
         Ok(())
     }
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            environment: Rc::new(RefCell::new(Environment::new(None))),
+        }
     }
-    pub fn evaluate(&self, expr: &Box<ExprEnum>) -> Result<Literal> {
+    pub fn evaluate(&mut self, expr: &Box<ExprEnum>) -> Result<Literal> {
         expr.accept(self)
     }
 
-    fn execute(&self, stmt: StmtEnum) -> Result<()> {
+    fn execute(&mut self, stmt: &mut StmtEnum) -> Result<()> {
         stmt.accept(self)
     }
 
-    pub fn interprete(&self, statements: Vec<StmtEnum>) -> Result<()> {
-        for statement in statements {
-            self.execute(statement)?
+    pub fn interprete(&mut self, statements: Vec<StmtEnum>) -> Result<()> {
+        for mut statement in statements {
+            // eprintln!("{:?}", statement);
+            self.execute(&mut statement)?
         }
+        Ok(())
+    }
+
+    fn execute_block(&mut self, statements: &mut Vec<StmtEnum>) -> Result<()> {
+        let child = Rc::new(RefCell::new(Environment::new(Some(Rc::clone(
+            &self.environment,
+        )))));
+        let previous = std::mem::replace(&mut self.environment, child);
+        for mut stmt in statements {
+            self.execute(&mut stmt)?;
+        }
+        self.environment = previous;
         Ok(())
     }
 }

@@ -144,7 +144,7 @@ impl Scanner {
     fn string(&mut self) {
         while self.peek() != '"' && !self.is_at_end() {
             if self.peek() == '\n' {
-                self.current += 1;
+                self.line += 1;
             }
             self.next();
         }

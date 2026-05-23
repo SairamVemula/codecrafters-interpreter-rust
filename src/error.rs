@@ -32,6 +32,8 @@ pub enum ParseError {
         expected: String,
         found: String,
     },
+    #[error("[line {line}] Error: Invalid assignment target")]
+    InvalidAssignment { line: usize },
 }
 
 #[derive(Error, Debug)]
@@ -44,4 +46,6 @@ pub enum RuntimeError {
     DivisionByZero,
     #[error("Unary not implemented for {operator} and {operand}")]
     UnaryTypeMismatch { operator: String, operand: String },
+    #[error("Undefined variable '{name}'.")]
+    UndefinedVariable { name: String },
 }
