@@ -1,8 +1,8 @@
-use anyhow::{Result};
+use anyhow::Result;
 
 use crate::{
+    ast::{expr::ExprEnum, expr::Literal, stmt::StmtEnum},
     error::ParseError,
-    expr::{ExprEnum, Literal, StmtEnum},
     token::{Token, TokenType},
 };
 
@@ -91,17 +91,23 @@ impl<'a> Parser<'a> {
         }
     }
 }
-
-// expression     → equality ;
-// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
-// term           → factor ( ( "-" | "+" ) factor )* ;
-// factor         → unary ( ( "/" | "*" ) unary )* ;
-// unary          → ( "!" | "-" ) unary
-//                | primary ;
-// primary        → NUMBER | STRING | "true" | "false" | "nil"
-//                | "(" expression ")" ;
-
+/**
+ * program        → statement* EOF ;
+ * declaration    → varDecl | statement ;
+ * statement      → exprStmt | ifStmt | printStmt | block |;
+ * ifStmt         → "if" "(" expression ")" statement ( "else" statement )? ;
+ * block          → "{" declaration* "}" ;
+ * exprStmt       → expression ";" ;
+ * printStmt      → "print" expression ";" ;
+ * expression     → assignment ;
+ * assignment     → IDENTIFIER "=" assignment | equality ;
+ * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+ * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+ * term           → factor ( ( "-" | "+" ) factor )* ;
+ * factor         → unary ( ( "/" | "*" ) unary )* ;
+ * unary          → ( "!" | "-" ) unary | primary ;
+ * primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+ */
 impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Vec<StmtEnum>> {
         let mut list = vec![];
@@ -175,7 +181,7 @@ impl<'a> Parser<'a> {
         }
 
         self.consume(TokenType::RightBrace, "Expect '}' after block.")?;
-        
+
         Ok(statements)
     }
 

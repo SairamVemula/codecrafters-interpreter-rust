@@ -3,12 +3,10 @@ use std::{cell::RefCell, rc::Rc};
 use anyhow::{Ok, Result};
 
 use crate::{
+    ast::expr::{Assign, Binary, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Unary, Variable},
+    ast::stmt::{Block, Expression, Print, Stmt, StmtEnum, StmtVisitor, Var},
     environment::Environment,
     error::RuntimeError,
-    expr::{
-        Assign, Binary, Block, Expr, ExprEnum, ExprVisitor, Expression, Grouping, Literal, Print,
-        Stmt, StmtEnum, StmtVisitor, Unary, Var, Variable,
-    },
     token::TokenType,
 };
 
@@ -139,7 +137,9 @@ impl ExprVisitor for Interpreter {
 
     fn visit_assign(&mut self, expr: &Assign) -> Self::Output {
         let value = self.evaluate(&expr.value)?;
-        self.environment.borrow_mut().assign(expr.name.clone(), value.clone())?;
+        self.environment
+            .borrow_mut()
+            .assign(expr.name.clone(), value.clone())?;
         Ok(value)
     }
 }
@@ -164,7 +164,9 @@ impl StmtVisitor for Interpreter {
         } else {
             None
         };
-        self.environment.borrow_mut().define(expr.name.lexeme.clone(), value);
+        self.environment
+            .borrow_mut()
+            .define(expr.name.lexeme.clone(), value);
         Ok(())
     }
 

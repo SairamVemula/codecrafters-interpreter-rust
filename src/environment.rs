@@ -2,7 +2,7 @@ use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use anyhow::Result;
 
-use crate::{error::RuntimeError, expr::Literal, token::Token};
+use crate::{error::RuntimeError, ast::expr::Literal, token::Token};
 
 pub struct Environment {
     enclosing: Option<Rc<RefCell<Environment>>>,

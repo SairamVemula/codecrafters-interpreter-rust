@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::expr::Literal;
+use crate::ast::expr::Literal;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TokenType {

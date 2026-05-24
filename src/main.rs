@@ -7,7 +7,7 @@ use crate::parser::Parser;
 use crate::scanner::Scanner;
 
 mod error;
-mod expr;
+mod ast;
 mod interpreter;
 mod parser;
 mod scanner;

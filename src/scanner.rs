@@ -1,6 +1,6 @@
 use crate::{
     error::EXIT_SCAN_ERROR,
-    expr::Literal,
+    ast::expr::Literal,
     token::{Token, TokenType},
 };
 
