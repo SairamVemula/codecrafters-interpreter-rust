@@ -8,6 +8,8 @@ pub trait StmtVisitor {
     fn visit_block(&mut self, stmt: &mut Block) -> Self::Output;
     fn visit_if_stmt(&mut self, stmt: &mut IfStmt) -> Self::Output;
     fn visit_while_stmt(&mut self, stmt: &mut WhileStmt) -> Self::Output;
+    fn visit_fun_stmt(&mut self, stmt: &mut Fun) -> Self::Output;
+    fn visit_return_stmt(&mut self, stmt: &mut ReturnStmt) -> Self::Output;
 }
 pub trait Stmt: Debug {
     fn accept<T>(&mut self, visitor: &mut dyn StmtVisitor<Output = T>) -> T;

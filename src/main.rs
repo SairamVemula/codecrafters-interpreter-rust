@@ -2,17 +2,16 @@ use std::env;
 use std::fs;
 
 use crate::error::{EXIT_PARSE_ERROR, EXIT_RUNTIME_ERROR, exit};
-use crate::interpreter::Interpreter;
 use crate::parser::Parser;
+use crate::runtime::Interpreter;
 use crate::scanner::Scanner;
 
-mod error;
 mod ast;
-mod interpreter;
+mod error;
 mod parser;
+mod runtime;
 mod scanner;
 mod token;
-mod environment;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -73,6 +72,7 @@ fn main() {
                 let result = parser.parse();
                 match result {
                     Ok(statements) => {
+                        // eprintln!("{:?}", statements);
                         let mut interpreter = Interpreter::new();
                         let result = interpreter.interprete(statements);
                         match result {

@@ -7,6 +7,7 @@ pub mod unary;
 pub mod variable;
 pub mod display;
 pub mod logical;
+pub mod call;
 
 pub use traits::*;
 pub use assign::*;
@@ -16,6 +17,7 @@ pub use literal::*;
 pub use unary::*;
 pub use variable::*;
 pub use logical::*;
+pub use call::*;
 
 
 #[derive(Debug, Clone)]
@@ -26,7 +28,8 @@ pub enum ExprEnum {
     Literal(Literal),
     Unary(Unary),
     Variable(Variable),
-    Logical(Logical)
+    Logical(Logical),
+    Call(Call)
 }
 
 impl Expr for ExprEnum {
@@ -39,6 +42,7 @@ impl Expr for ExprEnum {
             ExprEnum::Variable(expr) => visitor.visit_variable(expr),
             ExprEnum::Assign(expr) => visitor.visit_assign(expr),
             ExprEnum::Logical(logical) => visitor.visit_logical(logical),
+            ExprEnum::Call(call) => visitor.visit_call(call),
         }
     }
 }

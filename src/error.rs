@@ -1,6 +1,8 @@
 use std::process;
 use thiserror::Error;
 
+use crate::ast::expr::Literal;
+
 #[allow(dead_code)]
 pub const EXIT_SUCCESS: i32 = 0;
 pub const EXIT_SCAN_ERROR: i32 = 65;
@@ -34,6 +36,8 @@ pub enum ParseError {
     },
     #[error("[line {line}] Error: Invalid assignment target")]
     InvalidAssignment { line: usize },
+    #[error("[line {line}] Error: Can't have more than 255 arguments.")]
+    FunctionArgsLimitExceeded { line: usize },
 }
 
 #[derive(Error, Debug)]
@@ -48,4 +52,10 @@ pub enum RuntimeError {
     UnaryTypeMismatch { operator: String, operand: String },
     #[error("Undefined variable '{name}'.")]
     UndefinedVariable { name: String },
+    #[error("Can only call functions and classes.")]
+    FunctionCallError,
+    #[error("Expected {required} arguments but got {passed}.")]
+    FunctionCallArgsError { required: usize, passed: usize },
+    #[error("Return Value")]
+    ReturnValue { value: Literal },
 }

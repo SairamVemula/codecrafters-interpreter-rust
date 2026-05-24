@@ -1,19 +1,24 @@
-use std::{cell::RefCell, rc::Rc};
+use super::*;
+use std::sync::{Arc, Mutex};
 
-use anyhow::{Ok, Result};
+use anyhow::Result;
 
 use crate::{
     ast::{
-        expr::{Assign, Binary, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Unary, Variable},
+        expr::{
+            Assign, Binary, Call, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Logical, Unary,
+            Variable,
+        },
         stmt::{Block, Expression, IfStmt, Print, Stmt, StmtEnum, StmtVisitor, Var},
     },
-    environment::Environment,
     error::RuntimeError,
+    runtime::clock_fn::ClockFn,
     token::TokenType,
 };
 
 pub struct Interpreter {
-    environment: Rc<RefCell<Environment>>,
+    pub globals: Arc<Mutex<Environment>>,
+    pub environment: Arc<Mutex<Environment>>,
 }
 
 impl ExprVisitor for Interpreter {
@@ -134,18 +139,22 @@ impl ExprVisitor for Interpreter {
     }
 
     fn visit_variable(&mut self, expr: &Variable) -> Self::Output {
-        self.environment.borrow_mut().get(expr.name.clone())
+        match self.environment.lock().unwrap().get(expr.name.clone()) {
+            Ok(var) => Ok(var),
+            Err(_) => self.globals.lock().unwrap().get(expr.name.clone()),
+        }
     }
 
     fn visit_assign(&mut self, expr: &Assign) -> Self::Output {
         let value = self.evaluate(&expr.value)?;
         self.environment
-            .borrow_mut()
+            .lock()
+            .unwrap()
             .assign(expr.name.clone(), value.clone())?;
         Ok(value)
     }
 
-    fn visit_logical(&mut self, expr: &crate::ast::expr::Logical) -> Self::Output {
+    fn visit_logical(&mut self, expr: &Logical) -> Self::Output {
         let left = self.evaluate(&expr.left)?;
 
         if expr.operator._type == TokenType::Or {
@@ -159,6 +168,29 @@ impl ExprVisitor for Interpreter {
         }
 
         self.evaluate(&expr.right)
+    }
+
+    fn visit_call(&mut self, expr: &Call) -> Self::Output {
+        let callee = self.evaluate(&expr.callee)?;
+
+        let mut args = vec![];
+        for arg in expr.args.clone() {
+            args.push(self.evaluate(&Box::new(arg))?);
+        }
+
+        if let Literal::Callable(callee) = callee {
+            if callee.arity() != args.len() {
+                return Err(RuntimeError::FunctionCallArgsError {
+                    required: callee.arity(),
+                    passed: args.len(),
+                }
+                .into());
+            }
+
+            return callee.call(self, args);
+        }
+
+        Err(RuntimeError::FunctionCallError.into())
     }
 }
 
@@ -183,13 +215,17 @@ impl StmtVisitor for Interpreter {
             None
         };
         self.environment
-            .borrow_mut()
+            .lock()
+            .unwrap()
             .define(stmt.name.lexeme.clone(), value);
         Ok(())
     }
 
     fn visit_block(&mut self, block: &mut Block) -> Self::Output {
-        self.execute_block(&mut block.statements)?;
+        let child = Arc::new(Mutex::new(Environment::new(Some(Arc::clone(
+            &self.environment,
+        )))));
+        self.execute_block(&mut block.statements, child)?;
         Ok(())
     }
 
@@ -214,13 +250,41 @@ impl StmtVisitor for Interpreter {
         }
         Ok(())
     }
+
+    fn visit_fun_stmt(&mut self, stmt: &mut crate::ast::stmt::Fun) -> Self::Output {
+        let function = Arc::new(Function::new(stmt.clone(), self.environment.clone()));
+        self.environment
+            .lock()
+            .unwrap()
+            .define(stmt.name.lexeme.clone(), Some(Literal::Callable(function)));
+        Ok(())
+    }
+
+    fn visit_return_stmt(&mut self, stmt: &mut crate::ast::stmt::ReturnStmt) -> Self::Output {
+        let value = match stmt.value {
+            Some(ref v) => self.evaluate(&Box::new(v.clone()))?,
+            None => Literal::Null,
+        };
+        Err(RuntimeError::ReturnValue { value }.into())
+    }
 }
 
 impl Interpreter {
     pub fn new() -> Self {
-        Self {
-            environment: Rc::new(RefCell::new(Environment::new(None))),
-        }
+        let globals = Arc::new(Mutex::new(Environment::new(None)));
+        let mut interperter = Self {
+            environment: Arc::new(Mutex::new(Environment::new(None))),
+            globals: Arc::clone(&globals),
+        };
+        interperter.init_globals();
+        interperter
+    }
+
+    fn init_globals(&mut self) {
+        self.globals
+            .lock()
+            .unwrap()
+            .define("clock".to_owned(), Some(Literal::Callable(Arc::new(ClockFn))));
     }
     pub fn evaluate(&mut self, expr: &Box<ExprEnum>) -> Result<Literal> {
         expr.accept(self)
@@ -238,15 +302,19 @@ impl Interpreter {
         Ok(())
     }
 
-    fn execute_block(&mut self, statements: &mut Vec<StmtEnum>) -> Result<()> {
-        let child = Rc::new(RefCell::new(Environment::new(Some(Rc::clone(
-            &self.environment,
-        )))));
+    pub fn execute_block(
+        &mut self,
+        statements: &mut Vec<StmtEnum>,
+        child: Arc<Mutex<Environment>>,
+    ) -> Result<()> {
         let previous = std::mem::replace(&mut self.environment, child);
-        for mut stmt in statements {
-            self.execute(&mut stmt)?;
-        }
+        let result = (|| {
+            for stmt in statements {
+                self.execute(stmt)?;
+            }
+            Ok(())
+        })();
         self.environment = previous;
-        Ok(())
+        result
     }
 }

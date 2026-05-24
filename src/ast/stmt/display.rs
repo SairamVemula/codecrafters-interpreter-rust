@@ -29,6 +29,8 @@ impl fmt::Display for StmtEnum {
             ),
             StmtEnum::IfStmt(if_stmt) => writeln!(f, "{if_stmt}"),
             StmtEnum::WhileStmt(while_stmt) => writeln!(f, "{while_stmt}"),
+            StmtEnum::Function(fun) => writeln!(f, "{fun}"),
+            StmtEnum::ReturnStmt(e) => writeln!(f, "{e}"),
         }
     }
 }

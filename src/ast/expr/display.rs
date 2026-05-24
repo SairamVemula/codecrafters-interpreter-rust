@@ -20,6 +20,7 @@ impl fmt::Display for ExprEnum {
                 write!(f, "(= {} {})", a.name.lexeme, a.value)
             }
             ExprEnum::Logical(l) => write!(f, "({} {} {})", l.operator.lexeme, l.left, l.right),
+            ExprEnum::Call(call) => write!(f, "{call}"),
         }
     }
 }

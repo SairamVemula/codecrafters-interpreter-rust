@@ -48,7 +48,7 @@ pub enum TokenType {
     While,
 
     Eof,
-    Unknown,
+    // Unknown,
 }
 
 impl Display for TokenType {
@@ -93,7 +93,7 @@ impl Display for TokenType {
             TokenType::True => write!(f, "TRUE"),
             TokenType::Var => write!(f, "VAR"),
             TokenType::While => write!(f, "WHILE"),
-            TokenType::Unknown => write!(f, "UNKNOWN"),
+            // TokenType::Unknown => write!(f, "UNKNOWN"),
         }
     }
 }

@@ -2,8 +2,8 @@ use anyhow::Result;
 
 use crate::{
     ast::{
-        expr::{Assign, Binary, ExprEnum, Grouping, Literal, Logical, Unary, Variable},
-        stmt::{Block, Expression, IfStmt, Print, StmtEnum, Var, WhileStmt},
+        expr::{Assign, Binary, Call, ExprEnum, Grouping, Literal, Logical, Unary, Variable},
+        stmt::{Block, Expression, Fun, IfStmt, Print, ReturnStmt, StmtEnum, Var, WhileStmt},
     },
     error::ParseError,
     token::{Token, TokenType},
@@ -96,8 +96,12 @@ impl<'a> Parser<'a> {
 }
 /**
  * program        → statement* EOF ;
- * declaration    → varDecl | statement ;
- * statement      → exprStmt | forStmt | ifStmt | printStmt | whileStmt | block;
+ * declaration    → funDecl | varDecl | statement ;
+ * funDecl        → "fun" function ;
+ * function       → IDENTIFIER "(" parameters? ")" block ;
+ * parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
+ * statement      → exprStmt | forStmt | ifStmt | printStmt | returnStmt | whileStmt | block;
+ * returnStmt     → "return" expression? ";" ;
  * forStmt        → "for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression? ")" statement ;
  * whileStmt      → "while" "(" expression ")" statement ;
  * ifStmt         → "if" "(" expression ")" statement ( "else" statement )? ;
@@ -112,7 +116,9 @@ impl<'a> Parser<'a> {
  * comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  * term           → factor ( ( "-" | "+" ) factor )* ;
  * factor         → unary ( ( "/" | "*" ) unary )* ;
- * unary          → ( "!" | "-" ) unary | primary ;
+ * unary          → ( "!" | "-" ) unary | call ;
+ * call           → primary ( "(" arguments? ")" )* ;
+ * arguments      → expression ( "," expression )* ;
  * primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
  */
 impl<'a> Parser<'a> {
@@ -137,11 +143,59 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> Result<StmtEnum> {
+        if self.matches(vec![TokenType::Fun]) {
+            return self.fun_declaration("function");
+        }
+
         if self.matches(vec![TokenType::Var]) {
             return self.var_declaration();
         }
 
         self.statement()
+    }
+
+    fn fun_declaration(&mut self, kind: &str) -> Result<StmtEnum> {
+        let name = self
+            .consume(TokenType::Identifier, &format!("Expect {kind} name."))?
+            .clone();
+        self.consume(
+            TokenType::LeftParen,
+            &format!("Expect '(' after {kind} name."),
+        )?;
+
+        let mut params = vec![];
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if params.len() >= 255 {
+                    return Err(ParseError::FunctionArgsLimitExceeded {
+                        line: self.peek().line,
+                    }
+                    .into());
+                }
+
+                params.push(
+                    self.consume(TokenType::Identifier, "Expect parameter name.")?
+                        .clone(),
+                );
+
+                if !self.matches(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+        self.consume(
+            TokenType::RightParen,
+            &format!("Expect ')' after parameters."),
+        )?;
+
+        self.consume(
+            TokenType::LeftBrace,
+            &format!("Expect '{{' after {kind} body."),
+        )?;
+
+        let body = self.block()?;
+
+        Ok(Fun::new(name, params, body).into())
     }
 
     fn var_declaration(&mut self) -> Result<StmtEnum> {
@@ -171,6 +225,10 @@ impl<'a> Parser<'a> {
             return Ok(self.if_statement()?);
         }
 
+        if self.matches(vec![TokenType::Return]) {
+            return Ok(self.return_statement()?);
+        }
+
         if self.matches(vec![TokenType::Print]) {
             return Ok(self.print_statement()?);
         }
@@ -187,6 +245,18 @@ impl<'a> Parser<'a> {
         Ok(self.expression_statement()?)
     }
 
+    fn return_statement(&mut self) -> Result<StmtEnum> {
+        let keyword = self.previous().clone();
+        let value = if !self.check(TokenType::Semicolon) {
+            Some(self.expression()?)
+        } else {
+            None
+        };
+
+        self.consume(TokenType::Semicolon, "Expect ';' after return value.")?;
+
+        Ok(ReturnStmt::new(keyword, value).into())
+    }
     fn for_statement(&mut self) -> Result<StmtEnum> {
         self.consume(TokenType::LeftParen, "Expect '(' after 'for'.")?;
 
@@ -383,8 +453,49 @@ impl<'a> Parser<'a> {
             return Ok(Unary::new(operator, right).into());
         }
 
-        self.primary()
+        self.call()
     }
+
+    fn call(&mut self) -> Result<ExprEnum> {
+        let mut expr = self.primary()?;
+
+        loop {
+            if self.matches(vec![TokenType::LeftParen]) {
+                expr = self.finish_call(expr)?;
+            } else {
+                break;
+            }
+        }
+
+        Ok(expr)
+    }
+
+    fn finish_call(&mut self, callee: ExprEnum) -> Result<ExprEnum> {
+        let mut args = vec![];
+
+        if !self.check(TokenType::RightParen) {
+            loop {
+                if args.len() >= 255 {
+                    return Err(ParseError::FunctionArgsLimitExceeded {
+                        line: self.peek().line,
+                    }
+                    .into());
+                }
+
+                args.push(self.expression()?);
+                if !self.matches(vec![TokenType::Comma]) {
+                    break;
+                }
+            }
+        }
+
+        let paren = self
+            .consume(TokenType::RightParen, "Expect ')' after arguments.")?
+            .clone();
+
+        Ok(Call::new(callee, paren, args).into())
+    }
+
     fn primary(&mut self) -> Result<ExprEnum> {
         let token = self.advance();
         match token._type {
