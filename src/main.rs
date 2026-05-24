@@ -1,10 +1,15 @@
-#![allow(unused_variables)]
 use std::env;
 use std::fs;
-use std::process;
 
+use crate::error::{EXIT_PARSE_ERROR, EXIT_RUNTIME_ERROR, exit};
+use crate::parser::Parser;
+use crate::runtime::Interpreter;
 use crate::scanner::Scanner;
 
+mod ast;
+mod error;
+mod parser;
+mod runtime;
 mod scanner;
 mod token;
 
@@ -17,29 +22,75 @@ fn main() {
 
     let command = &args[1];
     let filename = &args[2];
+    eprintln!("Logs from your program will appear here!");
+
+    let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
+        eprintln!("Failed to read file {}", filename);
+        String::new()
+    });
+
+    // eprintln!("file_contents => `{}`", file_contents);
 
     match command.as_str() {
         "tokenize" => {
-            // You can use print statements as follows for debugging, they'll be visible when running tests.
-            eprintln!("Logs from your program will appear here!");
-
-            let file_contents = fs::read_to_string(filename).unwrap_or_else(|_| {
-                eprintln!("Failed to read file {}", filename);
-                String::new()
-            });
-
-            // TODO: Uncomment the code below to pass the first stage
             if !file_contents.is_empty() {
-                // println!("{file_contents}");
                 let mut scanner = Scanner::new(file_contents);
-                let tokens = scanner.scan_tokens();
-                // println!("{:?}", tokens);
+                let tokens = scanner.parse();
                 for token in tokens {
                     println!("{token}")
                 }
-                process::exit(scanner.exit_code);
+                exit(scanner.exit_code);
             } else {
-                println!("EOF  null"); // Placeholder, replace this line when implementing the scanner
+                println!("EOF  null");
+            }
+        }
+        "parse" => {
+            if !file_contents.is_empty() {
+                let mut scanner = Scanner::new(file_contents);
+                let tokens = scanner.parse();
+                let mut parser = Parser::new(tokens);
+                let result = parser.parse_expression();
+                match result {
+                    Ok(expr) => {
+                        println!("{expr}")
+                    }
+                    Err(e) => {
+                        eprintln!("{}", e.to_string());
+                        exit(EXIT_PARSE_ERROR);
+                    }
+                }
+                exit(scanner.exit_code);
+            } else {
+                println!("EOF  null");
+            }
+        }
+        "evaluate" | "run" => {
+            if !file_contents.is_empty() {
+                let mut scanner = Scanner::new(file_contents);
+                let tokens = scanner.parse();
+                let mut parser = Parser::new(tokens);
+                let result = parser.parse();
+                match result {
+                    Ok(statements) => {
+                        // eprintln!("{:?}", statements);
+                        let mut interpreter = Interpreter::new();
+                        let result = interpreter.interprete(statements);
+                        match result {
+                            Err(e) => {
+                                eprintln!("{}", e.to_string());
+                                exit(EXIT_RUNTIME_ERROR);
+                            }
+                            _ => {}
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("{}", e.to_string());
+                        exit(EXIT_PARSE_ERROR);
+                    }
+                }
+                exit(scanner.exit_code);
+            } else {
+                println!("EOF  null");
             }
         }
         _ => {
