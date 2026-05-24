@@ -4,7 +4,6 @@ use super::*;
 
 use crate::ast::expr::{ExprEnum, Literal};
 
-
 impl fmt::Display for StmtEnum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -28,6 +27,8 @@ impl fmt::Display for StmtEnum {
                     .collect::<Vec<String>>()
                     .join("\n")
             ),
+            StmtEnum::IfStmt(if_stmt) => writeln!(f, "{if_stmt}"),
+            StmtEnum::WhileStmt(while_stmt) => writeln!(f, "{while_stmt}"),
         }
     }
 }

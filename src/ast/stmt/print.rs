@@ -14,3 +14,9 @@ impl Print {
         }
     }
 }
+
+impl From<Print> for StmtEnum {
+    fn from(value: Print) -> Self {
+        StmtEnum::Print(value)
+    }
+}

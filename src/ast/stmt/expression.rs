@@ -15,3 +15,10 @@ impl Expression {
         }
     }
 }
+
+
+impl From<Expression> for StmtEnum {
+    fn from(value: Expression) -> Self {
+        StmtEnum::Expression(value)
+    }
+}

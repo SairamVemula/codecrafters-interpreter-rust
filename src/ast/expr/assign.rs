@@ -17,3 +17,9 @@ impl Assign {
         }
     }
 }
+
+impl From<Assign> for ExprEnum {
+    fn from(value: Assign) -> Self {
+        ExprEnum::Assign(value)
+    }
+}

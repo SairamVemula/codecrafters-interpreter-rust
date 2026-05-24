@@ -11,3 +11,9 @@ impl Variable {
         Self { name }
     }
 }
+
+impl From<Variable> for ExprEnum {
+    fn from(value: Variable) -> Self {
+        ExprEnum::Variable(value)
+    }
+}

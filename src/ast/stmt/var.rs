@@ -20,3 +20,10 @@ impl Var {
         }
     }
 }
+
+
+impl From<Var> for StmtEnum {
+    fn from(value: Var) -> Self {
+        StmtEnum::Var(value)
+    }
+}

@@ -3,8 +3,10 @@ use std::{cell::RefCell, rc::Rc};
 use anyhow::{Ok, Result};
 
 use crate::{
-    ast::expr::{Assign, Binary, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Unary, Variable},
-    ast::stmt::{Block, Expression, Print, Stmt, StmtEnum, StmtVisitor, Var},
+    ast::{
+        expr::{Assign, Binary, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Unary, Variable},
+        stmt::{Block, Expression, IfStmt, Print, Stmt, StmtEnum, StmtVisitor, Var},
+    },
     environment::Environment,
     error::RuntimeError,
     token::TokenType,
@@ -142,36 +144,74 @@ impl ExprVisitor for Interpreter {
             .assign(expr.name.clone(), value.clone())?;
         Ok(value)
     }
+
+    fn visit_logical(&mut self, expr: &crate::ast::expr::Logical) -> Self::Output {
+        let left = self.evaluate(&expr.left)?;
+
+        if expr.operator._type == TokenType::Or {
+            if left.is_truthy() {
+                return Ok(left);
+            }
+        } else {
+            if !left.is_truthy() {
+                return Ok(left);
+            }
+        }
+
+        self.evaluate(&expr.right)
+    }
 }
 
 impl StmtVisitor for Interpreter {
     type Output = Result<()>;
 
-    fn visit_expression(&mut self, expr: &mut Expression) -> Self::Output {
-        self.evaluate(&expr.expression)?;
+    fn visit_expression(&mut self, stmt: &mut Expression) -> Self::Output {
+        self.evaluate(&stmt.expression)?;
         Ok(())
     }
 
-    fn visit_print(&mut self, expr: &mut Print) -> Self::Output {
-        let result = self.evaluate(&expr.expression)?;
+    fn visit_print(&mut self, stmt: &mut Print) -> Self::Output {
+        let result = self.evaluate(&stmt.expression)?;
         println!("{result}");
         Ok(())
     }
 
-    fn visit_var(&mut self, expr: &mut Var) -> Self::Output {
-        let value = if let Some(initializer) = &expr.initializer {
+    fn visit_var(&mut self, stmt: &mut Var) -> Self::Output {
+        let value = if let Some(initializer) = &stmt.initializer {
             Some(self.evaluate(&initializer)?)
         } else {
             None
         };
         self.environment
             .borrow_mut()
-            .define(expr.name.lexeme.clone(), value);
+            .define(stmt.name.lexeme.clone(), value);
         Ok(())
     }
 
     fn visit_block(&mut self, block: &mut Block) -> Self::Output {
         self.execute_block(&mut block.statements)?;
+        Ok(())
+    }
+
+    fn visit_if_stmt(&mut self, stmt: &mut IfStmt) -> Self::Output {
+        if self
+            .evaluate(&Box::new(stmt.condition.clone()))?
+            .is_truthy()
+        {
+            self.execute(&mut stmt.then)?;
+        } else if let Some(mut else_branch) = stmt.else_branch.clone() {
+            self.execute(&mut else_branch)?;
+        }
+        Ok(())
+    }
+
+    fn visit_while_stmt(&mut self, stmt: &mut crate::ast::stmt::WhileStmt) -> Self::Output {
+        while self
+            .evaluate(&Box::new(stmt.condition.clone()))?
+            .is_truthy()
+        {
+            self.execute(&mut stmt.body)?;
+        }
         Ok(())
     }
 }

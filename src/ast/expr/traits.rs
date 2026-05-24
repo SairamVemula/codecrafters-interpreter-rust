@@ -9,6 +9,7 @@ pub trait ExprVisitor {
     fn visit_unary(&mut self, expr: &Unary) -> Self::Output;
     fn visit_variable(&mut self, expr: &Variable) -> Self::Output;
     fn visit_assign(&mut self, expr: &Assign) -> Self::Output;
+    fn visit_logical(&mut self, expr: &Logical) -> Self::Output;
 }
 
 pub trait Expr: std::fmt::Debug {

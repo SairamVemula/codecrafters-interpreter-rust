@@ -12,3 +12,9 @@ impl Grouping {
         }
     }
 }
+
+impl From<Grouping> for ExprEnum {
+    fn from(value: Grouping) -> Self {
+        ExprEnum::Grouping(value)
+    }
+}

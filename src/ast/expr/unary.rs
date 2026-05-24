@@ -16,3 +16,10 @@ impl Unary {
         }
     }
 }
+
+
+impl From<Unary> for ExprEnum {
+    fn from(value: Unary) -> Self {
+        ExprEnum::Unary(value)
+    }
+}

@@ -11,3 +11,10 @@ impl Block {
         Self { statements }
     }
 }
+
+
+impl From<Block> for StmtEnum {
+    fn from(value: Block) -> Self {
+        StmtEnum::Block(value)
+    }
+}

@@ -2,15 +2,15 @@ use super::*;
 
 use crate::token::Token;
 
-
 #[derive(Debug, Clone)]
-pub struct Binary {
+pub struct Logical {
     pub left: Box<ExprEnum>,
     pub operator: Token,
     pub right: Box<ExprEnum>,
 }
 
-impl Binary {
+
+impl Logical {
     pub fn new(left: ExprEnum, operator: Token, right: ExprEnum) -> Self {
         Self {
             left: Box::new(left),
@@ -20,8 +20,8 @@ impl Binary {
     }
 }
 
-impl From<Binary> for ExprEnum {
-    fn from(value: Binary) -> Self {
-        ExprEnum::Binary(value)
+impl From<Logical> for ExprEnum {
+    fn from(value: Logical) -> Self {
+        ExprEnum::Logical(value)
     }
 }
