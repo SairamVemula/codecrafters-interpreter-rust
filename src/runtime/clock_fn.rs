@@ -1,7 +1,7 @@
 use std::fmt::Display;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::ast::expr::Literal;
+use crate::ast::expr::Object;
 
 use super::{Callable, Interpreter, Result};
 
@@ -9,13 +9,13 @@ use super::{Callable, Interpreter, Result};
 pub struct ClockFn;
 
 impl Callable for ClockFn {
-    fn call(&self, _interpreter: &mut Interpreter, _args: Vec<Literal>) -> Result<Literal> {
+    fn call(&self, _interpreter: &mut Interpreter, _args: Vec<Object>) -> Result<Object> {
         let secs = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs();
 
-        Ok(Literal::Number(secs as f64))
+        Ok(Object::Number(secs as f64))
     }
 
     fn arity(&self) -> usize {

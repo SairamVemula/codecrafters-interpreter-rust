@@ -1,4 +1,4 @@
-use crate::ast::expr::Literal;
+use crate::ast::expr::Object;
 use crate::error::EXIT_SCAN_ERROR;
 use crate::token::{Token, TokenType};
 
@@ -29,7 +29,7 @@ impl Scanner {
         }
 
         self.tokens
-            .push(Token::new(TokenType::Eof, String::new(), Literal::Null, self.line));
+            .push(Token::new(TokenType::Eof, String::new(), Object::Null, self.line));
         std::mem::take(&mut self.tokens)
     }
 
@@ -37,42 +37,42 @@ impl Scanner {
         let ch = self.next();
         match ch {
             '\n' => self.line += 1,
-            '(' => self.add_token(TokenType::LeftParen, Literal::Null),
-            ')' => self.add_token(TokenType::RightParen, Literal::Null),
-            '{' => self.add_token(TokenType::LeftBrace, Literal::Null),
-            '}' => self.add_token(TokenType::RightBrace, Literal::Null),
-            ',' => self.add_token(TokenType::Comma, Literal::Null),
-            '.' => self.add_token(TokenType::Dot, Literal::Null),
-            '-' => self.add_token(TokenType::Minus, Literal::Null),
-            '+' => self.add_token(TokenType::Plus, Literal::Null),
-            ';' => self.add_token(TokenType::Semicolon, Literal::Null),
-            '*' => self.add_token(TokenType::Star, Literal::Null),
+            '(' => self.add_token(TokenType::LeftParen, Object::Null),
+            ')' => self.add_token(TokenType::RightParen, Object::Null),
+            '{' => self.add_token(TokenType::LeftBrace, Object::Null),
+            '}' => self.add_token(TokenType::RightBrace, Object::Null),
+            ',' => self.add_token(TokenType::Comma, Object::Null),
+            '.' => self.add_token(TokenType::Dot, Object::Null),
+            '-' => self.add_token(TokenType::Minus, Object::Null),
+            '+' => self.add_token(TokenType::Plus, Object::Null),
+            ';' => self.add_token(TokenType::Semicolon, Object::Null),
+            '*' => self.add_token(TokenType::Star, Object::Null),
             '=' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::EqualEqual, Literal::Null);
+                    self.add_token(TokenType::EqualEqual, Object::Null);
                 } else {
-                    self.add_token(TokenType::Equal, Literal::Null);
+                    self.add_token(TokenType::Equal, Object::Null);
                 }
             }
             '!' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::BangEqual, Literal::Null);
+                    self.add_token(TokenType::BangEqual, Object::Null);
                 } else {
-                    self.add_token(TokenType::Bang, Literal::Null);
+                    self.add_token(TokenType::Bang, Object::Null);
                 }
             }
             '<' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::LessEqual, Literal::Null);
+                    self.add_token(TokenType::LessEqual, Object::Null);
                 } else {
-                    self.add_token(TokenType::Less, Literal::Null);
+                    self.add_token(TokenType::Less, Object::Null);
                 }
             }
             '>' => {
                 if self.matches('=') {
-                    self.add_token(TokenType::GreaterEqual, Literal::Null);
+                    self.add_token(TokenType::GreaterEqual, Object::Null);
                 } else {
-                    self.add_token(TokenType::Greater, Literal::Null);
+                    self.add_token(TokenType::Greater, Object::Null);
                 }
             }
             '/' => {
@@ -81,7 +81,7 @@ impl Scanner {
                         self.next();
                     }
                 } else {
-                    self.add_token(TokenType::Slash, Literal::Null);
+                    self.add_token(TokenType::Slash, Object::Null);
                 }
             }
             ' ' | '\r' | '\t' => {}
@@ -106,7 +106,7 @@ impl Scanner {
         }
         let s: String = self.source[self.start..self.current].iter().collect();
         let token_type = TokenType::parse(&s);
-        self.add_token(token_type, Literal::Null);
+        self.add_token(token_type, Object::Null);
     }
 
     fn number(&mut self) {
@@ -122,7 +122,7 @@ impl Scanner {
         let s: String = self.source[self.start..self.current].iter().collect();
         match s.parse::<f64>() {
             Ok(value) => {
-                self.add_token(TokenType::Number, Literal::Number(value));
+                self.add_token(TokenType::Number, Object::Number(value));
             }
             Err(_) => {
                 eprintln!("[line {}] Error: Invalid number: {}", self.line, s);
@@ -148,7 +148,7 @@ impl Scanner {
         self.next();
         self.add_token(
             TokenType::String,
-            Literal::String(
+            Object::String(
                 self.source[self.start + 1..self.current - 1]
                     .iter()
                     .collect(),
@@ -164,7 +164,7 @@ impl Scanner {
         }
     }
 
-    fn add_token(&mut self, token_type: TokenType, literal: Literal) {
+    fn add_token(&mut self, token_type: TokenType, literal: Object) {
         let token = Token::new(
             token_type,
             self.source[self.start..self.current].iter().collect(),

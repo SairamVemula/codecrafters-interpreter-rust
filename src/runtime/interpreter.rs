@@ -2,8 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::ast::expr::{
-    Assign, Binary, Call, Expr, ExprEnum, ExprVisitor, Grouping, Literal, Logical, Unary,
-    Variable,
+    Assign, Binary, Call, Expr, ExprEnum, ExprVisitor, Grouping, Logical, Object, Unary, Variable,
 };
 use crate::ast::stmt::{
     Block, Expression, Fun, IfStmt, Print, ReturnStmt, Stmt, StmtEnum, StmtVisitor, Var,
@@ -21,7 +20,7 @@ pub struct Interpreter {
 }
 
 impl ExprVisitor for Interpreter {
-    type Output = Result<Literal>;
+    type Output = Result<Object>;
 
     fn visit_binary(&mut self, expr: &Binary) -> Self::Output {
         let left = self.evaluate(&expr.left)?;
@@ -29,45 +28,43 @@ impl ExprVisitor for Interpreter {
 
         match expr.operator.token_type {
             TokenType::Plus => match (left, right) {
-                (Literal::Number(a), Literal::Number(b)) => Ok(Literal::Number(a + b)),
-                (Literal::String(a), Literal::String(b)) => {
-                    Ok(Literal::String(format!("{a}{b}")))
-                }
+                (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a + b)),
+                (Object::String(a), Object::String(b)) => Ok(Object::String(format!("{a}{b}"))),
                 _ => Err(RuntimeError::PlusTypeMismatch),
             },
             TokenType::Minus => match (left, right) {
-                (Literal::Number(a), Literal::Number(b)) => Ok(Literal::Number(a - b)),
+                (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a - b)),
                 _ => Err(RuntimeError::NonNumericOperands),
             },
             TokenType::Star => match (left, right) {
-                (Literal::Number(a), Literal::Number(b)) => Ok(Literal::Number(a * b)),
+                (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a * b)),
                 _ => Err(RuntimeError::NonNumericOperands),
             },
             TokenType::Slash => match (left, right) {
-                (Literal::Number(_), Literal::Number(b)) if b == 0.0 => {
+                (Object::Number(_), Object::Number(b)) if b == 0.0 => {
                     Err(RuntimeError::DivisionByZero)
                 }
-                (Literal::Number(a), Literal::Number(b)) => Ok(Literal::Number(a / b)),
+                (Object::Number(a), Object::Number(b)) => Ok(Object::Number(a / b)),
                 _ => Err(RuntimeError::NonNumericOperands),
             },
             TokenType::Greater => match (left, right) {
-                (Literal::Number(a), Literal::Number(b)) => Ok(Literal::Boolean(a > b)),
+                (Object::Number(a), Object::Number(b)) => Ok(Object::Boolean(a > b)),
                 _ => Err(RuntimeError::NonNumericOperands),
             },
             TokenType::GreaterEqual => match (left, right) {
-                (Literal::Number(a), Literal::Number(b)) => Ok(Literal::Boolean(a >= b)),
+                (Object::Number(a), Object::Number(b)) => Ok(Object::Boolean(a >= b)),
                 _ => Err(RuntimeError::NonNumericOperands),
             },
             TokenType::Less => match (left, right) {
-                (Literal::Number(a), Literal::Number(b)) => Ok(Literal::Boolean(a < b)),
+                (Object::Number(a), Object::Number(b)) => Ok(Object::Boolean(a < b)),
                 _ => Err(RuntimeError::NonNumericOperands),
             },
             TokenType::LessEqual => match (left, right) {
-                (Literal::Number(a), Literal::Number(b)) => Ok(Literal::Boolean(a <= b)),
+                (Object::Number(a), Object::Number(b)) => Ok(Object::Boolean(a <= b)),
                 _ => Err(RuntimeError::NonNumericOperands),
             },
-            TokenType::EqualEqual => Ok(Literal::Boolean(left == right)),
-            TokenType::BangEqual => Ok(Literal::Boolean(left != right)),
+            TokenType::EqualEqual => Ok(Object::Boolean(left == right)),
+            TokenType::BangEqual => Ok(Object::Boolean(left != right)),
             _ => Err(RuntimeError::UnaryTypeMismatch {
                 operator: expr.operator.to_string(),
                 operand: format!("{left} {right}"),
@@ -79,7 +76,7 @@ impl ExprVisitor for Interpreter {
         self.evaluate(&expr.expression)
     }
 
-    fn visit_literal(&mut self, expr: &Literal) -> Self::Output {
+    fn visit_literal(&mut self, expr: &Object) -> Self::Output {
         Ok(expr.clone())
     }
 
@@ -88,16 +85,16 @@ impl ExprVisitor for Interpreter {
 
         match expr.operator.token_type {
             TokenType::Minus => match right {
-                Literal::Number(n) => Ok(Literal::Number(-n)),
+                Object::Number(n) => Ok(Object::Number(-n)),
                 _ => Err(RuntimeError::UnaryTypeMismatch {
                     operator: expr.operator.to_string(),
                     operand: format!("{right}"),
                 }),
             },
             TokenType::Bang => match right {
-                Literal::Boolean(n) => Ok(Literal::Boolean(!n)),
-                Literal::Number(n) => Ok(Literal::Boolean(n == 0.0)),
-                Literal::Null => Ok(Literal::Boolean(true)),
+                Object::Boolean(n) => Ok(Object::Boolean(!n)),
+                Object::Number(n) => Ok(Object::Boolean(n == 0.0)),
+                Object::Null => Ok(Object::Boolean(true)),
                 _ => Err(RuntimeError::UnaryTypeMismatch {
                     operator: expr.operator.to_string(),
                     operand: format!("{right}"),
@@ -144,7 +141,7 @@ impl ExprVisitor for Interpreter {
             args.push(self.evaluate(arg)?);
         }
 
-        if let Literal::Callable(callee) = callee {
+        if let Object::Callable(callee) = callee {
             if callee.arity() != args.len() {
                 return Err(RuntimeError::FunctionCallArgsError {
                     required: callee.arity(),
@@ -194,7 +191,7 @@ impl StmtVisitor for Interpreter {
     }
 
     fn visit_if_stmt(&mut self, stmt: &mut IfStmt) -> Self::Output {
-        if self.evaluate(&Box::new(stmt.condition.clone()))?.is_truthy() {
+        if self.evaluate(&stmt.condition)?.is_truthy() {
             self.execute(&mut stmt.then)?;
         } else if let Some(ref mut else_branch) = stmt.else_branch {
             self.execute(else_branch)?;
@@ -203,10 +200,7 @@ impl StmtVisitor for Interpreter {
     }
 
     fn visit_while_stmt(&mut self, stmt: &mut WhileStmt) -> Self::Output {
-        while self
-            .evaluate(&Box::new(stmt.condition.clone()))?
-            .is_truthy()
-        {
+        while self.evaluate(&stmt.condition)?.is_truthy() {
             self.execute(&mut stmt.body)?;
         }
         Ok(())
@@ -216,7 +210,7 @@ impl StmtVisitor for Interpreter {
         let function = Rc::new(Function::new(stmt.clone(), self.environment.clone()));
         self.environment
             .borrow_mut()
-            .define(stmt.name.lexeme.clone(), Some(Literal::Callable(function)));
+            .define(stmt.name.lexeme.clone(), Some(Object::Callable(function)));
         Ok(())
     }
 
@@ -224,9 +218,9 @@ impl StmtVisitor for Interpreter {
         let value = stmt
             .value
             .as_ref()
-            .map(|v| self.evaluate(&Box::new(v.clone())))
+            .map(|v| self.evaluate(v))
             .transpose()?
-            .unwrap_or(Literal::Null);
+            .unwrap_or(Object::Null);
         Err(RuntimeError::ReturnValue { value })
     }
 }
@@ -246,10 +240,10 @@ impl Interpreter {
     fn init_globals(&mut self) {
         self.globals
             .borrow_mut()
-            .define("clock".to_owned(), Some(Literal::Callable(Rc::new(ClockFn))));
+            .define("clock".to_owned(), Some(Object::Callable(Rc::new(ClockFn))));
     }
 
-    pub fn evaluate(&mut self, expr: &ExprEnum) -> Result<Literal> {
+    pub fn evaluate(&mut self, expr: &ExprEnum) -> Result<Object> {
         expr.accept(self)
     }
 
@@ -258,8 +252,8 @@ impl Interpreter {
     }
 
     pub fn interpret(&mut self, statements: Vec<StmtEnum>) -> Result<()> {
-        for statement in statements {
-            self.execute(&mut statement.clone())?;
+        for mut statement in statements {
+            self.execute(&mut statement)?;
         }
         Ok(())
     }

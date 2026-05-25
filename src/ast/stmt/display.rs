@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::ast::expr::{ExprEnum, Literal};
+use crate::ast::expr::{ExprEnum, Object};
 
 use super::StmtEnum;
 
@@ -15,7 +15,7 @@ impl fmt::Display for StmtEnum {
                 var.name.lexeme,
                 var.initializer
                     .clone()
-                    .unwrap_or(Box::new(ExprEnum::Literal(Literal::Null)))
+                    .unwrap_or(Box::new(ExprEnum::Object(Object::Null)))
             ),
             StmtEnum::Block(block) => write!(
                 f,

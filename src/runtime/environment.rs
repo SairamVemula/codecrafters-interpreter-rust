@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-use crate::ast::expr::Literal;
+use crate::ast::expr::Object;
 use crate::error::RuntimeError;
 use crate::token::Token;
 
@@ -11,7 +11,7 @@ use super::Result;
 #[derive(Debug)]
 pub struct Environment {
     enclosing: Option<Rc<RefCell<Environment>>>,
-    pub values: HashMap<String, Literal>,
+    pub values: HashMap<String, Object>,
 }
 
 impl Environment {
@@ -22,7 +22,7 @@ impl Environment {
         }
     }
 
-    pub fn get(&self, name: Token) -> Result<Literal> {
+    pub fn get(&self, name: Token) -> Result<Object> {
         match self.values.get(&name.lexeme) {
             Some(value) => Ok(value.clone()),
             None => match &self.enclosing {
@@ -32,7 +32,7 @@ impl Environment {
         }
     }
 
-    pub fn assign(&mut self, name: Token, value: Literal) -> Result<()> {
+    pub fn assign(&mut self, name: Token, value: Object) -> Result<()> {
         if self.values.contains_key(&name.lexeme) {
             self.values.insert(name.lexeme, value);
             return Ok(());
@@ -45,7 +45,7 @@ impl Environment {
         }
     }
 
-    pub fn define(&mut self, name: String, value: Option<Literal>) {
-        self.values.insert(name, value.unwrap_or(Literal::Null));
+    pub fn define(&mut self, name: String, value: Option<Object>) {
+        self.values.insert(name, value.unwrap_or(Object::Null));
     }
 }

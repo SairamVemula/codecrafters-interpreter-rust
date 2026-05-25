@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::ast::expr::Literal;
+use crate::ast::expr::Object;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TokenType {
@@ -119,12 +119,12 @@ impl TokenType {
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub literal: Literal,
+    pub literal: Object,
     pub line: usize,
 }
 
 impl Token {
-    pub fn new(token_type: TokenType, lexeme: String, literal: Literal, line: usize) -> Self {
+    pub fn new(token_type: TokenType, lexeme: String, literal: Object, line: usize) -> Self {
         Self {
             token_type,
             lexeme,

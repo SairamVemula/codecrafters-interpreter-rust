@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::ast::expr::{ExprEnum, Literal};
+use crate::ast::expr::{ExprEnum, Object};
 use crate::token::Token;
 
 use super::StmtEnum;
@@ -29,7 +29,7 @@ impl fmt::Display for ReturnStmt {
         write!(
             f,
             "return {}",
-            self.value.clone().unwrap_or(Literal::Null.into())
+            self.value.clone().unwrap_or(Object::Null.into())
         )
     }
 }

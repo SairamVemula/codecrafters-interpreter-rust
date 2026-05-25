@@ -1,5 +1,5 @@
 use crate::ast::expr::{
-    Assign, Binary, Call, ExprEnum, Grouping, Literal, Logical, Unary, Variable,
+    Assign, Binary, Call, ExprEnum, Grouping, Logical, Object, Unary, Variable,
 };
 use crate::ast::stmt::{
     Block, Expression, Fun, IfStmt, Print, ReturnStmt, StmtEnum, Var, WhileStmt,
@@ -265,7 +265,7 @@ impl<'a> Parser<'a> {
         let condition = if !self.matches(&[TokenType::Semicolon]) {
             self.expression()?
         } else {
-            Literal::Boolean(true).into()
+            Object::Boolean(true).into()
         };
         self.consume(TokenType::Semicolon, "Expect ';' after loop condition.")?;
 
@@ -494,12 +494,10 @@ impl<'a> Parser<'a> {
     fn primary(&mut self) -> Result<ExprEnum> {
         let token = self.advance();
         match token.token_type {
-            TokenType::True => Ok(ExprEnum::Literal(Literal::Boolean(true))),
-            TokenType::False => Ok(ExprEnum::Literal(Literal::Boolean(false))),
-            TokenType::Nil => Ok(ExprEnum::Literal(Literal::Null)),
-            TokenType::Number | TokenType::String => {
-                Ok(ExprEnum::Literal(token.literal.clone()))
-            }
+            TokenType::True => Ok(ExprEnum::Object(Object::Boolean(true))),
+            TokenType::False => Ok(ExprEnum::Object(Object::Boolean(false))),
+            TokenType::Nil => Ok(ExprEnum::Object(Object::Null)),
+            TokenType::Number | TokenType::String => Ok(ExprEnum::Object(token.literal.clone())),
             TokenType::Identifier => Ok(Variable::new(token.clone()).into()),
             TokenType::LeftParen => {
                 let expr = self.expression()?;

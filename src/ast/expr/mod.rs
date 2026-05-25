@@ -3,7 +3,7 @@ pub mod binary;
 pub mod call;
 pub mod display;
 pub mod grouping;
-pub mod literal;
+pub mod object;
 pub mod logical;
 pub mod traits;
 pub mod unary;
@@ -13,7 +13,7 @@ pub use assign::Assign;
 pub use binary::Binary;
 pub use call::Call;
 pub use grouping::Grouping;
-pub use literal::Literal;
+pub use object::Object;
 pub use logical::Logical;
 pub use traits::{Expr, ExprVisitor};
 pub use unary::Unary;
@@ -24,7 +24,7 @@ pub enum ExprEnum {
     Assign(Assign),
     Binary(Binary),
     Grouping(Grouping),
-    Literal(Literal),
+    Object(Object),
     Unary(Unary),
     Variable(Variable),
     Logical(Logical),
@@ -36,7 +36,7 @@ impl Expr for ExprEnum {
         match self {
             ExprEnum::Binary(expr) => visitor.visit_binary(expr),
             ExprEnum::Grouping(expr) => visitor.visit_grouping(expr),
-            ExprEnum::Literal(expr) => visitor.visit_literal(expr),
+            ExprEnum::Object(expr) => visitor.visit_literal(expr),
             ExprEnum::Unary(expr) => visitor.visit_unary(expr),
             ExprEnum::Variable(expr) => visitor.visit_variable(expr),
             ExprEnum::Assign(expr) => visitor.visit_assign(expr),
