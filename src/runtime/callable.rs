@@ -1,12 +1,10 @@
 use std::fmt::{Debug, Display};
 
-use anyhow::Result;
+use crate::ast::expr::Object;
 
-use crate::ast::expr::Literal;
+use super::{Interpreter, Result};
 
-use super::*;
-
-pub trait Callable: Debug + Display + Send + Sync {
-    fn call(&self, interpreter: &mut Interpreter, args: Vec<Literal>) -> Result<Literal>;
+pub trait Callable: Debug + Display {
+    fn call(&self, interpreter: &mut Interpreter, args: Vec<Object>) -> Result<Object>;
     fn arity(&self) -> usize;
 }

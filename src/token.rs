@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::ast::expr::Literal;
+use crate::ast::expr::Object;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum TokenType {
@@ -15,7 +15,6 @@ pub enum TokenType {
     Semicolon,
     Star,
     Slash,
-
     Equal,
     EqualEqual,
     Bang,
@@ -24,12 +23,9 @@ pub enum TokenType {
     LessEqual,
     Greater,
     GreaterEqual,
-
     String,
     Number,
-
     Identifier,
-
     And,
     Class,
     Else,
@@ -46,9 +42,7 @@ pub enum TokenType {
     True,
     Var,
     While,
-
     Eof,
-    // Unknown,
 }
 
 impl Display for TokenType {
@@ -93,14 +87,13 @@ impl Display for TokenType {
             TokenType::True => write!(f, "TRUE"),
             TokenType::Var => write!(f, "VAR"),
             TokenType::While => write!(f, "WHILE"),
-            // TokenType::Unknown => write!(f, "UNKNOWN"),
         }
     }
 }
 
 impl TokenType {
-    pub fn parse(s: String) -> Self {
-        match s.as_str() {
+    pub fn parse(s: &str) -> Self {
+        match s {
             "and" => TokenType::And,
             "class" => TokenType::Class,
             "else" => TokenType::Else,
@@ -124,16 +117,16 @@ impl TokenType {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Token {
-    pub _type: TokenType,
+    pub token_type: TokenType,
     pub lexeme: String,
-    pub literal: Literal,
+    pub literal: Object,
     pub line: usize,
 }
 
 impl Token {
-    pub fn new(_type: TokenType, lexeme: String, literal: Literal, line: usize) -> Self {
+    pub fn new(token_type: TokenType, lexeme: String, literal: Object, line: usize) -> Self {
         Self {
-            _type,
+            token_type,
             lexeme,
             literal,
             line,
@@ -143,6 +136,11 @@ impl Token {
 
 impl Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} {} {}", self._type, self.lexeme, self.literal)
+        let lit = match (&self.token_type, &self.literal) {
+            (TokenType::String, _) => self.literal.to_string(),
+            (TokenType::Number, _) => self.literal.to_string(),
+            _ => "null".to_string(),
+        };
+        write!(f, "{} {} {}", self.token_type, self.lexeme, lit)
     }
 }

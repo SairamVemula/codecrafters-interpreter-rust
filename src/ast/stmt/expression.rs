@@ -1,7 +1,6 @@
-use super::*;
-
 use crate::ast::expr::ExprEnum;
 
+use super::StmtEnum;
 
 #[derive(Debug, Clone)]
 pub struct Expression {
@@ -15,7 +14,6 @@ impl Expression {
         }
     }
 }
-
 
 impl From<Expression> for StmtEnum {
     fn from(value: Expression) -> Self {

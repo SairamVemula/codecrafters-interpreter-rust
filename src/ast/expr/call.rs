@@ -1,13 +1,12 @@
 use std::fmt;
 
-use super::*;
-
 use crate::token::Token;
+
+use super::ExprEnum;
 
 #[derive(Debug, Clone)]
 pub struct Call {
     pub callee: Box<ExprEnum>,
-    // pub paren: Token,
     pub args: Vec<ExprEnum>,
 }
 
@@ -15,7 +14,6 @@ impl Call {
     pub fn new(callee: ExprEnum, _paren: Token, args: Vec<ExprEnum>) -> Self {
         Self {
             callee: Box::new(callee),
-            // paren,
             args,
         }
     }
@@ -29,14 +27,14 @@ impl From<Call> for ExprEnum {
 
 impl fmt::Display for Call {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
+        write!(
             f,
-            "{} ({})",
+            "{}({})",
             self.callee,
             self.args
                 .iter()
-                .map(|f| f.to_string())
-                .collect::<Vec<String>>()
+                .map(|a| a.to_string())
+                .collect::<Vec<_>>()
                 .join(", ")
         )
     }

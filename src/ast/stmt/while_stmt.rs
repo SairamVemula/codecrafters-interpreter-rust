@@ -1,6 +1,8 @@
 use std::fmt;
 
-use super::*;
+use crate::ast::expr::ExprEnum;
+
+use super::StmtEnum;
 
 #[derive(Debug, Clone)]
 pub struct WhileStmt {
@@ -25,6 +27,6 @@ impl From<WhileStmt> for StmtEnum {
 
 impl fmt::Display for WhileStmt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "while ({}) {}", self.condition, self.body)
+        write!(f, "while ({}) {}", self.condition, self.body)
     }
 }

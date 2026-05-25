@@ -1,6 +1,7 @@
-use super::*;
+use crate::ast::expr::ExprEnum;
+use crate::token::Token;
 
-use crate::{ast::expr::ExprEnum, token::Token};
+use super::StmtEnum;
 
 #[derive(Debug, Clone)]
 pub struct Var {
@@ -12,15 +13,10 @@ impl Var {
     pub fn new(name: Token, expression: Option<ExprEnum>) -> Self {
         Self {
             name,
-            initializer: if let Some(expr) = expression {
-                Some(Box::new(expr))
-            } else {
-                None
-            },
+            initializer: expression.map(Box::new),
         }
     }
 }
-
 
 impl From<Var> for StmtEnum {
     fn from(value: Var) -> Self {

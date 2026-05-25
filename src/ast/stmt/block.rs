@@ -1,5 +1,4 @@
-use super::*;
-
+use super::StmtEnum;
 
 #[derive(Debug, Clone)]
 pub struct Block {
@@ -11,7 +10,6 @@ impl Block {
         Self { statements }
     }
 }
-
 
 impl From<Block> for StmtEnum {
     fn from(value: Block) -> Self {

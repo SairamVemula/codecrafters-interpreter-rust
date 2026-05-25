@@ -1,17 +1,10 @@
-use std::process;
 use thiserror::Error;
 
-use crate::ast::expr::Literal;
+use crate::ast::expr::Object;
 
-#[allow(dead_code)]
-pub const EXIT_SUCCESS: i32 = 0;
 pub const EXIT_SCAN_ERROR: i32 = 65;
 pub const EXIT_PARSE_ERROR: i32 = 65;
 pub const EXIT_RUNTIME_ERROR: i32 = 70;
-
-pub fn exit(code: i32) -> ! {
-    process::exit(code)
-}
 
 #[allow(dead_code)]
 #[derive(Error, Debug)]
@@ -57,5 +50,5 @@ pub enum RuntimeError {
     #[error("Expected {required} arguments but got {passed}.")]
     FunctionCallArgsError { required: usize, passed: usize },
     #[error("Return Value")]
-    ReturnValue { value: Literal },
+    ReturnValue { value: Object },
 }

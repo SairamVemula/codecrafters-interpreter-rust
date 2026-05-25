@@ -1,23 +1,21 @@
-use std::{
-    fmt::Display,
-    sync::{Arc, Mutex},
-};
+use std::cell::RefCell;
+use std::fmt::Display;
+use std::rc::Rc;
 
-use anyhow::Result;
-
-use super::*;
-
-use crate::ast::{expr::Literal, stmt::Fun};
+use crate::ast::expr::Object;
+use crate::ast::stmt::Fun;
 use crate::error::RuntimeError;
+
+use super::{Callable, Environment, Interpreter, Result};
 
 #[derive(Debug)]
 pub struct Function {
     declaration: Fun,
-    closure: Arc<Mutex<Environment>>,
+    closure: Rc<RefCell<Environment>>,
 }
 
 impl Function {
-    pub fn new(declaration: Fun, closure: Arc<Mutex<Environment>>) -> Self {
+    pub fn new(declaration: Fun, closure: Rc<RefCell<Environment>>) -> Self {
         Self {
             declaration,
             closure,
@@ -26,25 +24,15 @@ impl Function {
 }
 
 impl Callable for Function {
-    fn call(&self, interpreter: &mut Interpreter, args: Vec<Literal>) -> Result<Literal> {
-        let env = Arc::new(Mutex::new(Environment::new(Some(self.closure.clone()))));
-        for (i, param) in self.declaration.params.iter().enumerate() {
-            env.lock()
-                .unwrap()
-                .define(param.lexeme.clone(), args.get(i).cloned());
+    fn call(&self, interpreter: &mut Interpreter, args: Vec<Object>) -> Result<Object> {
+        let env = Rc::new(RefCell::new(Environment::new(Some(self.closure.clone()))));
+        for (param, arg) in self.declaration.params.iter().zip(args) {
+            env.borrow_mut().define(param.lexeme.clone(), Some(arg));
         }
         match interpreter.execute_block(&mut self.declaration.body.clone(), env) {
-            Ok(()) => Ok(Literal::Null),
-            Err(e) => {
-                if let Some(runtime_err) = e.downcast_ref::<RuntimeError>() {
-                    match runtime_err {
-                        RuntimeError::ReturnValue { value } => Ok(value.clone()),
-                        _ => Err(e),
-                    }
-                } else {
-                    Err(e)
-                }
-            }
+            Ok(()) => Ok(Object::Null),
+            Err(RuntimeError::ReturnValue { value }) => Ok(value),
+            Err(e) => Err(e),
         }
     }
 

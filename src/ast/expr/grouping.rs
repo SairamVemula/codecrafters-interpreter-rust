@@ -1,4 +1,4 @@
-use super::*;
+use super::ExprEnum;
 
 #[derive(Debug, Clone)]
 pub struct Grouping {

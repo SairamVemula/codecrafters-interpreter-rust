@@ -9,19 +9,29 @@ pub mod traits;
 pub mod var;
 pub mod while_stmt;
 
-pub use block::*;
-pub use expression::*;
-pub use fun::*;
-pub use if_stmt::*;
-pub use print::*;
-pub use return_stmt::*;
-pub use traits::*;
-pub use var::*;
-pub use while_stmt::*;
+pub use block::Block;
+pub use expression::Expression;
+pub use fun::Fun;
+pub use if_stmt::IfStmt;
+pub use print::Print;
+pub use return_stmt::ReturnStmt;
+pub use traits::{Stmt, StmtVisitor};
+pub use var::Var;
+pub use while_stmt::WhileStmt;
 
 use std::fmt::Debug;
 
-use crate::ast::expr::ExprEnum;
+#[derive(Debug, Clone)]
+pub enum StmtEnum {
+    Expression(Expression),
+    Print(Print),
+    Var(Var),
+    Block(Block),
+    IfStmt(IfStmt),
+    WhileStmt(WhileStmt),
+    Function(Fun),
+    ReturnStmt(ReturnStmt),
+}
 
 impl Stmt for StmtEnum {
     fn accept<T>(&mut self, visitor: &mut dyn StmtVisitor<Output = T>) -> T {
@@ -36,16 +46,4 @@ impl Stmt for StmtEnum {
             StmtEnum::ReturnStmt(return_stmt) => visitor.visit_return_stmt(return_stmt),
         }
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum StmtEnum {
-    Expression(Expression),
-    Print(Print),
-    Var(Var),
-    Block(Block),
-    IfStmt(IfStmt),
-    WhileStmt(WhileStmt),
-    Function(Fun),
-    ReturnStmt(ReturnStmt),
 }

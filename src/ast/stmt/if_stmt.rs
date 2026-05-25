@@ -1,6 +1,8 @@
 use std::fmt;
 
-use super::*;
+use crate::ast::expr::ExprEnum;
+
+use super::StmtEnum;
 
 #[derive(Debug, Clone)]
 pub struct IfStmt {
@@ -29,9 +31,9 @@ impl fmt::Display for IfStmt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let _ = write!(f, "if ({}) {}", self.condition, self.then);
         if let Some(eb) = &self.else_branch {
-            writeln!(f, "else {eb}")
+            write!(f, "else {eb}")
         } else {
-            writeln!(f)
+            write!(f, "")
         }
     }
 }

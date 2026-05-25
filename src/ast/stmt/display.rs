@@ -1,21 +1,21 @@
 use std::fmt;
 
-use super::*;
+use crate::ast::expr::{ExprEnum, Object};
 
-use crate::ast::expr::{ExprEnum, Literal};
+use super::StmtEnum;
 
 impl fmt::Display for StmtEnum {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            StmtEnum::Expression(e) => writeln!(f, "{}", e.expression),
-            StmtEnum::Print(e) => writeln!(f, "{}", e.expression),
-            StmtEnum::Var(var) => writeln!(
+            StmtEnum::Expression(e) => write!(f, "{}", e.expression),
+            StmtEnum::Print(e) => write!(f, "{}", e.expression),
+            StmtEnum::Var(var) => write!(
                 f,
                 "{} {}",
                 var.name.lexeme,
                 var.initializer
                     .clone()
-                    .unwrap_or(Box::new(ExprEnum::Literal(Literal::Null)))
+                    .unwrap_or(Box::new(ExprEnum::Object(Object::Null)))
             ),
             StmtEnum::Block(block) => write!(
                 f,
@@ -24,13 +24,13 @@ impl fmt::Display for StmtEnum {
                     .statements
                     .iter()
                     .map(|x| x.to_string())
-                    .collect::<Vec<String>>()
+                    .collect::<Vec<_>>()
                     .join("\n")
             ),
-            StmtEnum::IfStmt(if_stmt) => writeln!(f, "{if_stmt}"),
-            StmtEnum::WhileStmt(while_stmt) => writeln!(f, "{while_stmt}"),
-            StmtEnum::Function(fun) => writeln!(f, "{fun}"),
-            StmtEnum::ReturnStmt(e) => writeln!(f, "{e}"),
+            StmtEnum::IfStmt(if_stmt) => write!(f, "{if_stmt}"),
+            StmtEnum::WhileStmt(while_stmt) => write!(f, "{while_stmt}"),
+            StmtEnum::Function(fun) => write!(f, "{fun}"),
+            StmtEnum::ReturnStmt(e) => write!(f, "{e}"),
         }
     }
 }

@@ -1,6 +1,6 @@
-use super::*;
-
 use crate::ast::expr::ExprEnum;
+
+use super::StmtEnum;
 
 #[derive(Debug, Clone)]
 pub struct Print {
