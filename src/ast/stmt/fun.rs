@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::token::Token;
 
-use super::*;
+use super::StmtEnum;
 
 #[derive(Debug, Clone)]
 pub struct Fun {
@@ -25,19 +25,19 @@ impl From<Fun> for StmtEnum {
 
 impl fmt::Display for Fun {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
+        write!(
             f,
             "fun {} ({}) {{\n{}\n}}",
             self.name,
             self.params
                 .iter()
-                .map(|f| f.to_string())
-                .collect::<Vec<String>>()
+                .map(|p| p.to_string())
+                .collect::<Vec<_>>()
                 .join(", "),
             self.body
                 .iter()
-                .map(|f| f.to_string())
-                .collect::<Vec<String>>()
+                .map(|s| s.to_string())
+                .collect::<Vec<_>>()
                 .join(", ")
         )
     }

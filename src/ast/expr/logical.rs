@@ -1,6 +1,6 @@
-use super::*;
-
 use crate::token::Token;
+
+use super::ExprEnum;
 
 #[derive(Debug, Clone)]
 pub struct Logical {
@@ -8,7 +8,6 @@ pub struct Logical {
     pub operator: Token,
     pub right: Box<ExprEnum>,
 }
-
 
 impl Logical {
     pub fn new(left: ExprEnum, operator: Token, right: ExprEnum) -> Self {

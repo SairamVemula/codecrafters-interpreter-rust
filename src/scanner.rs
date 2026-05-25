@@ -1,8 +1,6 @@
-use crate::{
-    error::EXIT_SCAN_ERROR,
-    ast::expr::Literal,
-    token::{Token, TokenType},
-};
+use crate::ast::expr::Literal;
+use crate::error::EXIT_SCAN_ERROR;
+use crate::token::{Token, TokenType};
 
 pub struct Scanner {
     source: Vec<char>,
@@ -10,38 +8,35 @@ pub struct Scanner {
     start: usize,
     current: usize,
     line: usize,
-    pub exit_code: i32,
+    had_error: bool,
 }
 
 impl Scanner {
     pub fn new(source: String) -> Self {
         Self {
             source: source.chars().collect(),
-            tokens: vec![],
+            tokens: Vec::new(),
             start: 0,
             current: 0,
             line: 1,
-            exit_code: 0,
+            had_error: false,
         }
     }
 
-    pub fn parse(&mut self) -> &Vec<Token> {
+    pub fn parse(&mut self) -> Vec<Token> {
         while !self.is_at_end() {
             self.scan_token();
         }
 
         self.tokens
-            .push(Token::new(TokenType::Eof, "".to_string(), Literal::Null, 0));
-        &self.tokens
+            .push(Token::new(TokenType::Eof, String::new(), Literal::Null, self.line));
+        std::mem::take(&mut self.tokens)
     }
 
     fn scan_token(&mut self) {
         let ch = self.next();
-        // println!("ch = {ch}");
         match ch {
-            '\n' => {
-                self.line += 1;
-            }
+            '\n' => self.line += 1,
             '(' => self.add_token(TokenType::LeftParen, Literal::Null),
             ')' => self.add_token(TokenType::RightParen, Literal::Null),
             '{' => self.add_token(TokenType::LeftBrace, Literal::Null),
@@ -98,45 +93,40 @@ impl Scanner {
                     self.identifier();
                 } else {
                     eprintln!("[line {}] Error: Unexpected character: {}", self.line, ch);
-                    self.exit_code = EXIT_SCAN_ERROR;
+                    self.had_error = true;
                 }
             }
-        };
+        }
         self.start = self.current;
     }
 
     fn identifier(&mut self) {
-        while self.peek().is_alphanumeric() || self.peek() == '_' && !self.is_at_end() {
+        while !self.is_at_end() && (self.peek().is_alphanumeric() || self.peek() == '_') {
             self.next();
         }
-        let str: String = self.source[self.start..self.current].iter().collect();
-        let _type = TokenType::parse(str);
-        let literal = match _type {
-            TokenType::True => Literal::Boolean(true),
-            TokenType::False => Literal::Boolean(false),
-            _ => Literal::Null,
-        };
-        self.add_token(_type, literal);
+        let s: String = self.source[self.start..self.current].iter().collect();
+        let token_type = TokenType::parse(&s);
+        self.add_token(token_type, Literal::Null);
     }
 
     fn number(&mut self) {
-        while self.peek().is_numeric() && !self.is_at_end() {
+        while !self.is_at_end() && self.peek().is_numeric() {
             self.next();
         }
         if self.peek() == '.' && self.peek_next().is_numeric() {
             self.next();
-            while self.peek().is_numeric() && !self.is_at_end() {
+            while !self.is_at_end() && self.peek().is_numeric() {
                 self.next();
             }
         }
-        let str: String = self.source[self.start..self.current].iter().collect();
-        match str.parse::<f64>() {
+        let s: String = self.source[self.start..self.current].iter().collect();
+        match s.parse::<f64>() {
             Ok(value) => {
-                self.add_token(TokenType::Number, Literal::Number(value, str));
+                self.add_token(TokenType::Number, Literal::Number(value));
             }
             Err(_) => {
-                eprintln!("[line {}] Error: Invalid number: {}", self.line, str);
-                self.exit_code = EXIT_SCAN_ERROR;
+                eprintln!("[line {}] Error: Invalid number: {}", self.line, s);
+                self.had_error = true;
             }
         }
     }
@@ -150,7 +140,7 @@ impl Scanner {
         }
 
         if self.is_at_end() {
-            self.exit_code = EXIT_SCAN_ERROR;
+            self.had_error = true;
             eprintln!("[line {}] Error: Unterminated string.", self.line);
             return;
         }
@@ -166,9 +156,17 @@ impl Scanner {
         );
     }
 
-    fn add_token(&mut self, _type: TokenType, literal: Literal) {
+    pub fn exit_code(&self) -> i32 {
+        if self.had_error {
+            EXIT_SCAN_ERROR
+        } else {
+            0
+        }
+    }
+
+    fn add_token(&mut self, token_type: TokenType, literal: Literal) {
         let token = Token::new(
-            _type,
+            token_type,
             self.source[self.start..self.current].iter().collect(),
             literal,
             self.line,
@@ -181,17 +179,21 @@ impl Scanner {
         self.current += 1;
         ch
     }
+
     fn peek_next(&self) -> char {
         if self.current + 1 >= self.source.len() {
-            return '\0';
+            '\0'
+        } else {
+            self.source[self.current + 1]
         }
-        return self.source[self.current + 1];
     }
+
     fn peek(&self) -> char {
         if self.is_at_end() {
-            return '\0';
+            '\0'
+        } else {
+            self.source[self.current]
         }
-        return self.source[self.current];
     }
 
     fn matches(&mut self, ch: char) -> bool {

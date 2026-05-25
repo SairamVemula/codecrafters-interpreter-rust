@@ -1,24 +1,23 @@
-pub mod traits;
 pub mod assign;
 pub mod binary;
+pub mod call;
+pub mod display;
 pub mod grouping;
 pub mod literal;
+pub mod logical;
+pub mod traits;
 pub mod unary;
 pub mod variable;
-pub mod display;
-pub mod logical;
-pub mod call;
 
-pub use traits::*;
-pub use assign::*;
-pub use binary::*;
-pub use grouping::*;
-pub use literal::*;
-pub use unary::*;
-pub use variable::*;
-pub use logical::*;
-pub use call::*;
-
+pub use assign::Assign;
+pub use binary::Binary;
+pub use call::Call;
+pub use grouping::Grouping;
+pub use literal::Literal;
+pub use logical::Logical;
+pub use traits::{Expr, ExprVisitor};
+pub use unary::Unary;
+pub use variable::Variable;
 
 #[derive(Debug, Clone)]
 pub enum ExprEnum {
@@ -29,7 +28,7 @@ pub enum ExprEnum {
     Unary(Unary),
     Variable(Variable),
     Logical(Logical),
-    Call(Call)
+    Call(Call),
 }
 
 impl Expr for ExprEnum {

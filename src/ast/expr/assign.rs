@@ -1,7 +1,6 @@
-use super::*;
-
 use crate::token::Token;
 
+use super::ExprEnum;
 
 #[derive(Debug, Clone)]
 pub struct Assign {

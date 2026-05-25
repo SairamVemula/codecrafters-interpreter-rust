@@ -1,4 +1,4 @@
-use super::*;
+use super::{Block, Expression, Fun, IfStmt, Print, ReturnStmt, Var, WhileStmt};
 
 pub trait StmtVisitor {
     type Output;
@@ -11,6 +11,7 @@ pub trait StmtVisitor {
     fn visit_fun_stmt(&mut self, stmt: &mut Fun) -> Self::Output;
     fn visit_return_stmt(&mut self, stmt: &mut ReturnStmt) -> Self::Output;
 }
-pub trait Stmt: Debug {
+
+pub trait Stmt: std::fmt::Debug {
     fn accept<T>(&mut self, visitor: &mut dyn StmtVisitor<Output = T>) -> T;
 }

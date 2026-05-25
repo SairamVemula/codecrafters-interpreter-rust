@@ -1,11 +1,13 @@
 use std::fmt;
 
-use super::*;
+use crate::ast::expr::{ExprEnum, Literal};
+use crate::token::Token;
 
-use crate::{ast::expr::Literal, token::Token};
+use super::StmtEnum;
 
 #[derive(Debug, Clone)]
 pub struct ReturnStmt {
+    #[allow(dead_code)]
     pub keyword: Token,
     pub value: Option<ExprEnum>,
 }
@@ -24,7 +26,7 @@ impl From<ReturnStmt> for StmtEnum {
 
 impl fmt::Display for ReturnStmt {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
+        write!(
             f,
             "return {}",
             self.value.clone().unwrap_or(Literal::Null.into())

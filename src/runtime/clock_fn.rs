@@ -1,12 +1,9 @@
-use anyhow::Result;
-
-use super::*;
-use std::{
-    fmt::Display,
-    time::{SystemTime, UNIX_EPOCH},
-};
+use std::fmt::Display;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::ast::expr::Literal;
+
+use super::{Callable, Interpreter, Result};
 
 #[derive(Debug)]
 pub struct ClockFn;
@@ -18,7 +15,7 @@ impl Callable for ClockFn {
             .unwrap()
             .as_secs();
 
-        Ok(Literal::Number(secs as f64, secs.to_string()))
+        Ok(Literal::Number(secs as f64))
     }
 
     fn arity(&self) -> usize {

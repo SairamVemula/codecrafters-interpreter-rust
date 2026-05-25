@@ -1,6 +1,6 @@
-use super::*;
-
 use crate::token::Token;
+
+use super::ExprEnum;
 
 #[derive(Debug, Clone)]
 pub struct Unary {
@@ -16,7 +16,6 @@ impl Unary {
         }
     }
 }
-
 
 impl From<Unary> for ExprEnum {
     fn from(value: Unary) -> Self {
