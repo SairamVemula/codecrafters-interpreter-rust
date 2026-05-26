@@ -11,10 +11,24 @@ use crate::ast::{
 };
 use crate::token::Token;
 
+#[derive(Debug, PartialEq)]
+pub enum InFunEnum {
+    Fun,
+    Method,
+    Initializer,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum ClassType {
+    Class,
+    SubClass,
+}
+
 pub struct Resolver<'a> {
     interpreter: &'a mut Interpreter,
     scopes: Vec<HashMap<String, bool>>,
-    in_function: usize,
+    in_function: Option<InFunEnum>,
+    current_class: Option<ClassType>,
 }
 impl<'a> ExprVisitor for Resolver<'a> {
     type Output = Result<()>;
@@ -68,9 +82,40 @@ impl<'a> ExprVisitor for Resolver<'a> {
         }
         Ok(())
     }
-    
+
     fn visit_get(&mut self, expr: &crate::ast::expr::Get) -> Self::Output {
-        self.resolve_expr(&expr.clone().into())
+        self.resolve_expr(&expr.object)
+    }
+
+    fn visit_set(&mut self, expr: &crate::ast::expr::Set) -> Self::Output {
+        self.resolve_expr(&expr.value)?;
+        self.resolve_expr(&expr.object)
+    }
+
+    fn visit_this(&mut self, expr: &crate::ast::expr::This) -> Self::Output {
+        if let Some(_) = self.current_class {
+            return self.resolve_local(&expr.clone().into(), &expr.keyword);
+        }
+
+        Err(RuntimeError::Error {
+            line: expr.keyword.line,
+            msg: "Can't use 'this' outside of a class.".into(),
+        })
+    }
+
+    fn visit_super(&mut self, expr: &crate::ast::expr::Super) -> Self::Output {
+        if self.current_class == None {
+            return Err(RuntimeError::Error {
+                line: expr.keyword.line,
+                msg: "Can't use 'super' outside of a class.".to_owned(),
+            });
+        } else if self.current_class != Some(ClassType::SubClass) {
+            return Err(RuntimeError::Error {
+                line: expr.keyword.line,
+                msg: "Can't use 'super' in a class with no superclass.".to_owned(),
+            });
+        }
+        self.resolve_local(&expr.clone().into(), &expr.keyword)
     }
 }
 
@@ -119,26 +164,79 @@ impl<'a> StmtVisitor for Resolver<'a> {
         self.declare(&stmt.name)?;
         self.define(&stmt.name)?;
 
-        self.resolve_function(stmt)?;
+        self.resolve_function(stmt, Some(InFunEnum::Fun))?;
         Ok(())
     }
 
     fn visit_return_stmt(&mut self, stmt: &mut crate::ast::stmt::ReturnStmt) -> Self::Output {
-        if self.in_function == 0 {
+        if self.in_function.is_none() {
             return Err(RuntimeError::Error {
                 line: stmt.keyword.line,
                 msg: "Can't return from top-level code.".to_owned(),
             });
         }
         if let Some(value) = &stmt.value {
+            if let Some(InFunEnum::Initializer) = self.in_function {
+                return Err(RuntimeError::Error {
+                    line: stmt.keyword.line,
+                    msg: "Can't return a value from an initializer.".into(),
+                });
+            }
             self.resolve_expr(value)?;
         }
         Ok(())
     }
-    
+
     fn visit_class(&mut self, stmt: &mut crate::ast::stmt::Class) -> Self::Output {
+        let enclosing_class = self.current_class.replace(ClassType::Class);
+
         self.declare(&stmt.name)?;
-        self.define(&stmt.name)
+        self.define(&stmt.name)?;
+
+        if let Some(superclass) = &stmt.superclass {
+            if superclass.name.lexeme == stmt.name.lexeme {
+                return Err(RuntimeError::Error {
+                    line: superclass.name.line,
+                    msg: "A class can't inherit from itself.".into(),
+                });
+            }
+            self.current_class = Some(ClassType::SubClass);
+            self.resolve_expr(&superclass.clone().into())?;
+        }
+
+        if let Some(_) = &stmt.superclass {
+            self.begin_scope();
+            self.scopes
+                .last_mut()
+                .unwrap()
+                .insert("super".to_owned(), true);
+        }
+
+        self.begin_scope();
+        self.scopes
+            .last_mut()
+            .unwrap()
+            .insert("this".to_owned(), true);
+
+        for method in &mut stmt.methods {
+            if let StmtEnum::Function(fun) = method {
+                let declaration = if fun.name.lexeme == "init" {
+                    Some(InFunEnum::Initializer)
+                } else {
+                    Some(InFunEnum::Method)
+                };
+                self.resolve_function(fun, declaration)?;
+            }
+        }
+
+        self.end_scope();
+
+        if let Some(_) = &stmt.superclass {
+            self.end_scope();
+        }
+
+        self.current_class = enclosing_class;
+        Ok(())
     }
 }
 
@@ -147,7 +245,8 @@ impl<'a> Resolver<'a> {
         Self {
             interpreter,
             scopes: Vec::new(),
-            in_function: 0,
+            in_function: None,
+            current_class: None,
         }
     }
 
@@ -210,15 +309,16 @@ impl<'a> Resolver<'a> {
         Ok(())
     }
 
-    fn resolve_function(&mut self, fun: &mut Fun) -> Result<()> {
+    fn resolve_function(&mut self, fun: &mut Fun, mut in_fun: Option<InFunEnum>) -> Result<()> {
         self.begin_scope();
-        self.in_function += 1;
+        let mut original = self.in_function.take();
+        self.in_function = in_fun.take();
         for param in &fun.params {
             self.declare(&param)?;
             self.define(&param)?;
         }
         self.resolve(&mut fun.body)?;
-        self.in_function -= 1;
+        self.in_function = original.take();
         self.end_scope();
         Ok(())
     }

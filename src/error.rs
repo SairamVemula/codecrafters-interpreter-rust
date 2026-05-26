@@ -46,6 +46,8 @@ pub enum RuntimeError {
     UnaryTypeMismatch { operator: String, operand: String },
     #[error("Undefined variable '{name}'.")]
     UndefinedVariable { name: String },
+    #[error("Undefined property '{name}'.")]
+    UndefinedProperty { name: String },
     #[error("Can only call functions and classes.")]
     FunctionCallError,
     #[error("Expected {required} arguments but got {passed}.")]

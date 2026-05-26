@@ -5,21 +5,33 @@ use std::rc::Rc;
 use crate::ast::expr::Object;
 use crate::ast::stmt::Fun;
 use crate::error::RuntimeError;
+use crate::token::Token;
 
-use super::{Callable, Environment, Interpreter, Result};
+use super::{Callable, Environment, Interpreter, Result, Instance};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Function {
     declaration: Fun,
     closure: Rc<RefCell<Environment>>,
+    is_initializer: bool
 }
 
 impl Function {
-    pub fn new(declaration: Fun, closure: Rc<RefCell<Environment>>) -> Self {
+    pub fn new(declaration: Fun, closure: Rc<RefCell<Environment>>, is_initializer: bool) -> Self {
         Self {
             declaration,
             closure,
+            is_initializer
         }
+    }
+
+    pub fn bind(&self, instance: Rc<RefCell<Instance>>) -> Function {
+        let env = Rc::new(RefCell::new(Environment::new(Some(self.closure.clone()))));
+        env.borrow_mut().define(
+            "this".to_owned(),
+            Some(Object::Instance(instance)),
+        );
+        Function::new(self.declaration.clone(), env, self.is_initializer)
     }
 }
 
@@ -30,14 +42,40 @@ impl Callable for Function {
             env.borrow_mut().define(param.lexeme.clone(), Some(arg));
         }
         match interpreter.execute_block(&mut self.declaration.body.clone(), env) {
-            Ok(()) => Ok(Object::Null),
-            Err(RuntimeError::ReturnValue { value }) => Ok(value),
+            Ok(()) => {
+                if self.is_initializer {
+                    let this_token = Token::new(
+                        crate::token::TokenType::This,
+                        "this".to_owned(),
+                        Object::Null,
+                        0,
+                    );
+                    return self.closure.borrow().get_at(0, this_token);
+                }
+                Ok(Object::Null)
+            }
+            Err(RuntimeError::ReturnValue { value }) => {
+                if self.is_initializer {
+                    let this_token = Token::new(
+                        crate::token::TokenType::This,
+                        "this".to_owned(),
+                        Object::Null,
+                        0,
+                    );
+                    return self.closure.borrow().get_at(0, this_token);
+                }
+                Ok(value)
+            }
             Err(e) => Err(e),
         }
     }
 
     fn arity(&self) -> usize {
         self.declaration.params.len()
+    }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
     }
 }
 

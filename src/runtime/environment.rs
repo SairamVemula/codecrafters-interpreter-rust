@@ -10,7 +10,7 @@ use super::Result;
 
 #[derive(Debug)]
 pub struct Environment {
-    enclosing: Option<Rc<RefCell<Environment>>>,
+    pub enclosing: Option<Rc<RefCell<Environment>>>,
     pub values: HashMap<String, Object>,
 }
 

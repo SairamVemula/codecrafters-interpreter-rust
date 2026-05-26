@@ -4,17 +4,16 @@ use std::rc::Rc;
 
 use crate::ast::expr::{
     Assign, Binary, Call, Expr, ExprEnum, ExprVisitor, Grouping, Logical, Object, Unary, Variable,
-    object,
 };
 use crate::ast::stmt::{
     Block, Expression, Fun, IfStmt, Print, ReturnStmt, Stmt, StmtEnum, StmtVisitor, Var, WhileStmt,
 };
 use crate::error::RuntimeError;
-use crate::runtime::Class;
 use crate::runtime::clock_fn::ClockFn;
+use crate::runtime::{Class, Function, Instance};
 use crate::token::{Token, TokenType};
 
-use super::{Environment, Function, Result};
+use super::{Environment, Result};
 
 pub struct Interpreter {
     pub globals: Rc<RefCell<Environment>>,
@@ -171,12 +170,57 @@ impl ExprVisitor for Interpreter {
     fn visit_get(&mut self, expr: &crate::ast::expr::Get) -> Self::Output {
         let object = self.evaluate(&expr.object)?;
         if let Object::Instance(instance) = object {
-            return instance.get(expr.name);
+            return Instance::get(&instance, &expr.name);
         }
 
         Err(RuntimeError::Error {
             line: expr.name.line,
             msg: "Only instances have properties.".to_owned(),
+        })
+    }
+
+    fn visit_set(&mut self, expr: &crate::ast::expr::Set) -> Self::Output {
+        let object = self.evaluate(&expr.object)?;
+
+        if let Object::Instance(instance) = object {
+            let value = self.evaluate(&expr.value)?;
+            instance.borrow_mut().set(&expr.name, value.clone());
+            return Ok(value);
+        }
+
+        Err(RuntimeError::Error {
+            line: expr.name.line,
+            msg: "Only instances have properties.".to_owned(),
+        })
+    }
+
+    fn visit_this(&mut self, expr: &crate::ast::expr::This) -> Self::Output {
+        self.lookup_variable(expr.keyword.clone(), expr.clone().into())
+    }
+
+    fn visit_super(&mut self, expr: &crate::ast::expr::Super) -> Self::Output {
+        let distance = self.locals.get(&expr.clone().into()).unwrap_or(&0);
+        let superclass = self.environment.borrow().get_at(
+            *distance,
+            Token::new(TokenType::Super, "super".to_owned(), Object::Null, 0),
+        )?;
+        let object = self.environment.borrow().get_at(
+            *distance - 1,
+            Token::new(TokenType::Super, "this".to_owned(), Object::Null, 0),
+        )?;
+        if let Object::Callable(superclass) = superclass {
+            if let Some(class) = superclass.as_any().downcast_ref::<Class>(){
+                let method: Option<Function> = class.find_method(&expr.method.lexeme);
+                if let Some(method) = method {
+                    if let Object::Instance(instance) = object {
+                        return Ok(Object::Callable(Rc::new(method.bind(instance.clone()))))
+                    }
+                }
+            }
+        }
+
+        Err(RuntimeError::UndefinedProperty {
+            name: expr.method.lexeme.clone(),
         })
     }
 }
@@ -232,10 +276,11 @@ impl StmtVisitor for Interpreter {
     }
 
     fn visit_fun_stmt(&mut self, stmt: &mut Fun) -> Self::Output {
-        let function = Rc::new(Function::new(stmt.clone(), self.environment.clone()));
-        self.environment
-            .borrow_mut()
-            .define(stmt.name.lexeme.clone(), Some(Object::Callable(function)));
+        let function = Function::new(stmt.clone(), self.environment.clone(), false);
+        self.environment.borrow_mut().define(
+            stmt.name.lexeme.clone(),
+            Some(Object::Callable(Rc::new(function))),
+        );
         Ok(())
     }
 
@@ -250,11 +295,71 @@ impl StmtVisitor for Interpreter {
     }
 
     fn visit_class(&mut self, stmt: &mut crate::ast::stmt::Class) -> Self::Output {
-        self.environment.borrow_mut().define(stmt.name.lexeme, None);
-        let klass = Class::new(stmt.name.lexeme);
+        let superclass = if let Some(superclass) = &stmt.superclass {
+            let obj: Object = self.evaluate(&superclass.clone().into())?;
+            if let Object::Callable(callable) = obj {
+                if callable.as_any().downcast_ref::<Class>().is_none() {
+                    return Err(RuntimeError::Error {
+                        line: superclass.name.line,
+                        msg: "Superclass must be a class.".into(),
+                    });
+                }
+                Some(callable)
+            } else {
+                return Err(RuntimeError::Error {
+                    line: superclass.name.line,
+                    msg: "Superclass must be a class.".into(),
+                });
+            }
+        } else {
+            None
+        };
+
         self.environment
             .borrow_mut()
-            .define(stmt.name.lexeme, klass);
+            .define(stmt.name.lexeme.clone(), None);
+
+        if let Some(_) = stmt.superclass {
+            self.environment = Rc::new(RefCell::new(Environment::new(Some(
+                self.environment.clone(),
+            ))));
+            self.environment
+                .borrow_mut()
+                .define("super".to_owned(), superclass.clone().map(|s| s.into()));
+        }
+
+        let mut methods = HashMap::new();
+        for method in &stmt.methods {
+            if let StmtEnum::Function(fun) = method {
+                let fun_obj = Function::new(
+                    fun.clone(),
+                    self.environment.clone(),
+                    fun.name.lexeme == "init",
+                );
+                methods.insert(fun.name.lexeme.clone(), fun_obj);
+            }
+        }
+
+        let superklass = match &superclass {
+            Some(sc) => sc.as_any().downcast_ref::<Class>(),
+            None => None,
+        };
+
+        let klass = Class::new(stmt.name.lexeme.clone(), methods, superklass.cloned());
+
+        if let Some(superclass) = superclass {
+            let enclosing = self.environment.borrow().enclosing.as_ref().cloned();
+            if let Some(enclosing) = enclosing {
+                self.environment = enclosing;
+                self.environment
+                    .borrow_mut()
+                    .define("super".to_owned(), Some(superclass.into()));
+            }
+        }
+
+        self.environment
+            .borrow_mut()
+            .assign(stmt.name.clone(), Object::Callable(Rc::new(klass)))?;
         Ok(())
     }
 }

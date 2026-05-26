@@ -1,5 +1,5 @@
 use crate::ast::expr::{
-    Assign, Binary, Call, ExprEnum, Get, Grouping, Logical, Object, Unary, Variable,
+    Assign, Binary, Call, ExprEnum, Get, Grouping, Logical, Object, Super, Set, This, Unary, Variable
 };
 use crate::ast::stmt::{
     Block, Class, Expression, Fun, IfStmt, Print, ReturnStmt, StmtEnum, Var, WhileStmt,
@@ -91,7 +91,7 @@ impl<'a> Parser<'a> {
 /**
  * program        → statement* EOF ;
  * declaration    → classDecl | funDecl | varDecl | statement ;
- * classDecl      → "class" IDENTIFIER "{" function* "}" ;
+ * classDecl      → "class" IDENTIFIER ("<" IDENTIFIER)? "{" function* "}" ;
  * funDecl        → "fun" function ;
  * function       → IDENTIFIER "(" parameters? ")" block ;
  * parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
@@ -104,7 +104,7 @@ impl<'a> Parser<'a> {
  * exprStmt       → expression ";" ;
  * printStmt      → "print" expression ";" ;
  * expression     → assignment ;
- * assignment     → IDENTIFIER "=" assignment | logic_or ;
+ * assignment     → (call ".")? IDENTIFIER "=" assignment | logic_or ;
  * logic_or       → logic_and ( "or" logic_and )* ;
  * logic_and      → equality ( "and" equality )* ;
  * equality       → comparison ( ( "!=" | "==" ) comparison )* ;
@@ -114,7 +114,7 @@ impl<'a> Parser<'a> {
  * unary          → ( "!" | "-" ) unary | call ;
  * call           → primary ( "(" arguments? ")" | "." INDENTIFIER )* ;
  * arguments      → expression ( "," expression )* ;
- * primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+ * primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | "super" "." INDENTIFIER;
  */
 impl<'a> Parser<'a> {
     pub fn parse(&mut self) -> Result<Vec<StmtEnum>> {
@@ -157,6 +157,14 @@ impl<'a> Parser<'a> {
         let name = self
             .consume(TokenType::Identifier, "Expect class name.")?
             .clone();
+
+        let superclass = if self.matches(&[TokenType::Less]) {
+            self.consume(TokenType::Identifier, "Expect superclass name.")?;
+            Some(Variable::new(self.previous().clone()))
+        } else {
+            None
+        };
+
         self.consume(TokenType::LeftBrace, "Expect '{' before class body.")?;
 
         let mut methods = Vec::new();
@@ -166,7 +174,7 @@ impl<'a> Parser<'a> {
 
         self.consume(TokenType::RightBrace, "Expect '}' after class body.")?;
 
-        Ok(Class::new(name, methods).into())
+        Ok(Class::new(name, methods, superclass).into())
     }
 
     fn fun_declaration(&mut self, kind: &str) -> Result<StmtEnum> {
@@ -379,6 +387,8 @@ impl<'a> Parser<'a> {
             if let ExprEnum::Variable(var) = expr {
                 let name = var.name;
                 return Ok(Assign::new(name, value).into());
+            } else if let ExprEnum::Get(get) = expr {
+                return Ok(Set::new(*get.object, get.name, value).into());
             }
 
             return Err(ParseError::InvalidAssignment { line: equals.line });
@@ -530,6 +540,13 @@ impl<'a> Parser<'a> {
                 self.consume(TokenType::RightParen, "Expected ')' after expression")?;
                 Ok(Grouping::new(expr).into())
             }
+            TokenType::This => Ok(This::new(self.previous().clone()).into()),
+            TokenType::Super => {
+                let keyword = self.previous().clone();
+                self.consume(TokenType::Dot, "Expect '.' after 'super'.")?;
+                let method = self.consume(TokenType::Identifier, "Expect superclass method name.")?.clone();
+                Ok(Super::new(keyword, method).into())
+            },
             _ => Err(ParseError::ExpectedExpression {
                 line: token.line,
                 got: token.lexeme.clone(),

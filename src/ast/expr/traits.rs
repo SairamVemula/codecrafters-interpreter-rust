@@ -1,4 +1,6 @@
-use super::{Assign, Binary, Call, Grouping, Logical, Object, Unary, Variable, Get};
+use super::{
+    Assign, Binary, Call, Get, Grouping, Logical, Object, Super, Set, This, Unary, Variable,
+};
 
 pub trait ExprVisitor {
     type Output;
@@ -12,6 +14,9 @@ pub trait ExprVisitor {
     fn visit_logical(&mut self, expr: &Logical) -> Self::Output;
     fn visit_call(&mut self, expr: &Call) -> Self::Output;
     fn visit_get(&mut self, expr: &Get) -> Self::Output;
+    fn visit_set(&mut self, expr: &Set) -> Self::Output;
+    fn visit_this(&mut self, expr: &This) -> Self::Output;
+    fn visit_super(&mut self, expr: &Super) -> Self::Output;
 }
 
 pub trait Expr: std::fmt::Debug {
