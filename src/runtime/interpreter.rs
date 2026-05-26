@@ -1,22 +1,25 @@
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 use crate::ast::expr::{
     Assign, Binary, Call, Expr, ExprEnum, ExprVisitor, Grouping, Logical, Object, Unary, Variable,
+    object,
 };
 use crate::ast::stmt::{
-    Block, Expression, Fun, IfStmt, Print, ReturnStmt, Stmt, StmtEnum, StmtVisitor, Var,
-    WhileStmt,
+    Block, Expression, Fun, IfStmt, Print, ReturnStmt, Stmt, StmtEnum, StmtVisitor, Var, WhileStmt,
 };
 use crate::error::RuntimeError;
+use crate::runtime::Class;
 use crate::runtime::clock_fn::ClockFn;
-use crate::token::TokenType;
+use crate::token::{Token, TokenType};
 
 use super::{Environment, Function, Result};
 
 pub struct Interpreter {
     pub globals: Rc<RefCell<Environment>>,
     pub environment: Rc<RefCell<Environment>>,
+    pub locals: HashMap<ExprEnum, usize>,
 }
 
 impl ExprVisitor for Interpreter {
@@ -108,14 +111,24 @@ impl ExprVisitor for Interpreter {
     }
 
     fn visit_variable(&mut self, expr: &Variable) -> Self::Output {
-        self.environment.borrow().get(expr.name.clone())
+        self.lookup_variable(expr.name.clone(), expr.clone().into())
     }
 
     fn visit_assign(&mut self, expr: &Assign) -> Self::Output {
         let value = self.evaluate(&expr.value)?;
-        self.environment
-            .borrow_mut()
-            .assign(expr.name.clone(), value.clone())?;
+
+        match self.locals.get(&expr.clone().into()) {
+            Some(distance) => {
+                self.environment
+                    .borrow_mut()
+                    .assign_at(*distance, expr.name.clone(), value.clone())
+            }
+            None => self
+                .globals
+                .borrow_mut()
+                .assign(expr.name.clone(), value.clone()),
+        }?;
+
         Ok(value)
     }
 
@@ -153,6 +166,18 @@ impl ExprVisitor for Interpreter {
         }
 
         Err(RuntimeError::FunctionCallError)
+    }
+
+    fn visit_get(&mut self, expr: &crate::ast::expr::Get) -> Self::Output {
+        let object = self.evaluate(&expr.object)?;
+        if let Object::Instance(instance) = object {
+            return instance.get(expr.name);
+        }
+
+        Err(RuntimeError::Error {
+            line: expr.name.line,
+            msg: "Only instances have properties.".to_owned(),
+        })
     }
 }
 
@@ -223,15 +248,24 @@ impl StmtVisitor for Interpreter {
             .unwrap_or(Object::Null);
         Err(RuntimeError::ReturnValue { value })
     }
+
+    fn visit_class(&mut self, stmt: &mut crate::ast::stmt::Class) -> Self::Output {
+        self.environment.borrow_mut().define(stmt.name.lexeme, None);
+        let klass = Class::new(stmt.name.lexeme);
+        self.environment
+            .borrow_mut()
+            .define(stmt.name.lexeme, klass);
+        Ok(())
+    }
 }
 
 impl Interpreter {
     pub fn new() -> Self {
         let globals = Rc::new(RefCell::new(Environment::new(None)));
-        let env = Rc::new(RefCell::new(Environment::new(Some(Rc::clone(&globals)))));
         let mut interpreter = Self {
-            environment: Rc::clone(&env),
+            environment: Rc::clone(&globals),
             globals: Rc::clone(&globals),
+            locals: HashMap::new(),
         };
         interpreter.init_globals();
         interpreter
@@ -272,5 +306,17 @@ impl Interpreter {
         })();
         self.environment = previous;
         result
+    }
+
+    pub fn resolve(&mut self, expr: ExprEnum, depth: usize) {
+        self.locals.insert(expr, depth);
+    }
+
+    fn lookup_variable(&self, name: Token, expr: ExprEnum) -> Result<Object> {
+        let distance = self.locals.get(&expr);
+        match distance {
+            Some(distance) => self.environment.borrow().get_at(*distance, name),
+            None => self.globals.borrow().get(name),
+        }
     }
 }

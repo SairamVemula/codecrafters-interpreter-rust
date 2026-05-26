@@ -31,6 +31,7 @@ impl fmt::Display for StmtEnum {
             StmtEnum::WhileStmt(while_stmt) => write!(f, "{while_stmt}"),
             StmtEnum::Function(fun) => write!(f, "{fun}"),
             StmtEnum::ReturnStmt(e) => write!(f, "{e}"),
+            StmtEnum::Class(c) => write!(f, "{c}"),
         }
     }
 }

@@ -1,4 +1,4 @@
-use super::{Block, Expression, Fun, IfStmt, Print, ReturnStmt, Var, WhileStmt};
+use super::{Block, Class, Expression, Fun, IfStmt, Print, ReturnStmt, Var, WhileStmt};
 
 pub trait StmtVisitor {
     type Output;
@@ -10,6 +10,7 @@ pub trait StmtVisitor {
     fn visit_while_stmt(&mut self, stmt: &mut WhileStmt) -> Self::Output;
     fn visit_fun_stmt(&mut self, stmt: &mut Fun) -> Self::Output;
     fn visit_return_stmt(&mut self, stmt: &mut ReturnStmt) -> Self::Output;
+    fn visit_class(&mut self, stmt: &mut Class) -> Self::Output;
 }
 
 pub trait Stmt: std::fmt::Debug {

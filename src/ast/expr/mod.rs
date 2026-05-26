@@ -8,6 +8,7 @@ pub mod logical;
 pub mod traits;
 pub mod unary;
 pub mod variable;
+pub mod get;
 
 pub use assign::Assign;
 pub use binary::Binary;
@@ -18,8 +19,9 @@ pub use logical::Logical;
 pub use traits::{Expr, ExprVisitor};
 pub use unary::Unary;
 pub use variable::Variable;
+pub use get::Get;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum ExprEnum {
     Assign(Assign),
     Binary(Binary),
@@ -29,6 +31,7 @@ pub enum ExprEnum {
     Variable(Variable),
     Logical(Logical),
     Call(Call),
+    Get(Get),
 }
 
 impl Expr for ExprEnum {
@@ -42,6 +45,7 @@ impl Expr for ExprEnum {
             ExprEnum::Assign(expr) => visitor.visit_assign(expr),
             ExprEnum::Logical(logical) => visitor.visit_logical(logical),
             ExprEnum::Call(call) => visitor.visit_call(call),
+            ExprEnum::Get(get) => visitor.visit_get(get),
         }
     }
 }

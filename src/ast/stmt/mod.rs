@@ -8,6 +8,7 @@ pub mod return_stmt;
 pub mod traits;
 pub mod var;
 pub mod while_stmt;
+pub mod class;
 
 pub use block::Block;
 pub use expression::Expression;
@@ -18,6 +19,7 @@ pub use return_stmt::ReturnStmt;
 pub use traits::{Stmt, StmtVisitor};
 pub use var::Var;
 pub use while_stmt::WhileStmt;
+pub use class::Class;
 
 use std::fmt::Debug;
 
@@ -31,6 +33,7 @@ pub enum StmtEnum {
     WhileStmt(WhileStmt),
     Function(Fun),
     ReturnStmt(ReturnStmt),
+    Class(Class)
 }
 
 impl Stmt for StmtEnum {
@@ -44,6 +47,7 @@ impl Stmt for StmtEnum {
             StmtEnum::WhileStmt(while_stmt) => visitor.visit_while_stmt(while_stmt),
             StmtEnum::Function(fun) => visitor.visit_fun_stmt(fun),
             StmtEnum::ReturnStmt(return_stmt) => visitor.visit_return_stmt(return_stmt),
+            StmtEnum::Class(class) => visitor.visit_class(class),
         }
     }
 }

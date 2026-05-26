@@ -1,8 +1,8 @@
 use crate::ast::expr::{
-    Assign, Binary, Call, ExprEnum, Grouping, Logical, Object, Unary, Variable,
+    Assign, Binary, Call, ExprEnum, Get, Grouping, Logical, Object, Unary, Variable,
 };
 use crate::ast::stmt::{
-    Block, Expression, Fun, IfStmt, Print, ReturnStmt, StmtEnum, Var, WhileStmt,
+    Block, Class, Expression, Fun, IfStmt, Print, ReturnStmt, StmtEnum, Var, WhileStmt,
 };
 use crate::error::ParseError;
 use crate::token::{Token, TokenType};
@@ -90,7 +90,8 @@ impl<'a> Parser<'a> {
 }
 /**
  * program        → statement* EOF ;
- * declaration    → funDecl | varDecl | statement ;
+ * declaration    → classDecl | funDecl | varDecl | statement ;
+ * classDecl      → "class" IDENTIFIER "{" function* "}" ;
  * funDecl        → "fun" function ;
  * function       → IDENTIFIER "(" parameters? ")" block ;
  * parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
@@ -111,7 +112,7 @@ impl<'a> Parser<'a> {
  * term           → factor ( ( "-" | "+" ) factor )* ;
  * factor         → unary ( ( "/" | "*" ) unary )* ;
  * unary          → ( "!" | "-" ) unary | call ;
- * call           → primary ( "(" arguments? ")" )* ;
+ * call           → primary ( "(" arguments? ")" | "." INDENTIFIER )* ;
  * arguments      → expression ( "," expression )* ;
  * primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
  */
@@ -137,6 +138,10 @@ impl<'a> Parser<'a> {
     }
 
     fn declaration(&mut self) -> Result<StmtEnum> {
+        if self.matches(&[TokenType::Class]) {
+            return self.class_declaration();
+        }
+
         if self.matches(&[TokenType::Fun]) {
             return self.fun_declaration("function");
         }
@@ -146,6 +151,22 @@ impl<'a> Parser<'a> {
         }
 
         self.statement()
+    }
+
+    fn class_declaration(&mut self) -> Result<StmtEnum> {
+        let name = self
+            .consume(TokenType::Identifier, "Expect class name.")?
+            .clone();
+        self.consume(TokenType::LeftBrace, "Expect '{' before class body.")?;
+
+        let mut methods = Vec::new();
+        while !self.check(TokenType::RightBrace) {
+            methods.push(self.fun_declaration("methods")?);
+        }
+
+        self.consume(TokenType::RightBrace, "Expect '}' after class body.")?;
+
+        Ok(Class::new(name, methods).into())
     }
 
     fn fun_declaration(&mut self, kind: &str) -> Result<StmtEnum> {
@@ -458,6 +479,11 @@ impl<'a> Parser<'a> {
         loop {
             if self.matches(&[TokenType::LeftParen]) {
                 expr = self.finish_call(expr)?;
+            } else if self.matches(&[TokenType::Dot]) {
+                let name = self
+                    .consume(TokenType::Identifier, "Expect property name after '.'.")?
+                    .clone();
+                expr = Get::new(expr, name).into()
             } else {
                 break;
             }
