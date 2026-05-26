@@ -2,7 +2,7 @@ use crate::token::Token;
 
 use super::ExprEnum;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Logical {
     pub left: Box<ExprEnum>,
     pub operator: Token,

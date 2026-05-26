@@ -1,7 +1,9 @@
+use std::cell::RefCell;
 use std::fmt::{self, Display};
+use std::hash::{Hash, Hasher};
 use std::rc::Rc;
 
-use crate::runtime::Callable;
+use crate::runtime::{Callable, Instance};
 
 use super::ExprEnum;
 
@@ -12,6 +14,7 @@ pub enum Object {
     Number(f64),
     Boolean(bool),
     Callable(Rc<dyn Callable>),
+    Instance(Rc<RefCell<Instance>>),
 }
 
 impl Display for Object {
@@ -28,6 +31,7 @@ impl Display for Object {
             Object::Null => write!(f, "nil"),
             Object::Boolean(b) => write!(f, "{b}"),
             Object::Callable(fun) => write!(f, "{fun}"),
+            Object::Instance(instance) => write!(f, "{}", instance.borrow()),
         }
     }
 }
@@ -56,6 +60,7 @@ impl Object {
             Object::String(s) => s.clone(),
             Object::Boolean(b) => b.to_string(),
             Object::Callable(f) => f.to_string(),
+            Object::Instance(f) => f.borrow().to_string(),
         }
     }
 }
@@ -68,7 +73,23 @@ impl PartialEq for Object {
             (Object::Number(a), Object::Number(b)) => a == b,
             (Object::Boolean(a), Object::Boolean(b)) => a == b,
             (Object::Callable(a), Object::Callable(b)) => Rc::ptr_eq(a, b),
+            (Object::Instance(a), Object::Instance(b)) => Rc::ptr_eq(a, b),
             _ => false,
+        }
+    }
+}
+
+impl Eq for Object {}
+
+impl Hash for Object {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        match self {
+            Object::Null => 0u8.hash(state),
+            Object::String(s) => s.hash(state),
+            Object::Number(n) => n.to_bits().hash(state),
+            Object::Boolean(b) => b.hash(state),
+            Object::Callable(c) => Rc::as_ptr(c).hash(state),
+            Object::Instance(c) => Rc::as_ptr(c).hash(state),
         }
     }
 }

@@ -3,9 +3,10 @@ use std::fs;
 use std::io::{self, BufRead, Write};
 use std::process;
 
-use crate::error::{EXIT_PARSE_ERROR, EXIT_RUNTIME_ERROR};
+use crate::error::{EXIT_PARSE_ERROR, EXIT_RESOLVE_ERROR, EXIT_RUNTIME_ERROR};
 use crate::parser::Parser;
 use crate::runtime::Interpreter;
+use crate::runtime::resolver::Resolver;
 use crate::scanner::Scanner;
 
 mod ast;
@@ -68,15 +69,13 @@ fn main() {
                 let mut parser = Parser::new(&tokens);
                 let mut interpreter = Interpreter::new();
                 match parser.parse_expression() {
-                    Ok(expr) => {
-                        match interpreter.evaluate(&Box::new(expr)) {
-                            Ok(value) => println!("{}", value.runtime_display()),
-                            Err(e) => {
-                                eprintln!("{e}");
-                                process::exit(EXIT_RUNTIME_ERROR);
-                            }
+                    Ok(expr) => match interpreter.evaluate(&Box::new(expr)) {
+                        Ok(value) => println!("{}", value.runtime_display()),
+                        Err(e) => {
+                            eprintln!("{e}");
+                            process::exit(EXIT_RUNTIME_ERROR);
                         }
-                    }
+                    },
                     Err(e) => {
                         eprintln!("{e}");
                         process::exit(EXIT_PARSE_ERROR);
@@ -94,8 +93,13 @@ fn main() {
                 let mut parser = Parser::new(&tokens);
                 let result = parser.parse();
                 match result {
-                    Ok(statements) => {
+                    Ok(mut statements) => {
                         let mut interpreter = Interpreter::new();
+                        let mut resolver = Resolver::new(&mut interpreter);
+                        if let Err(e) = resolver.resolve(&mut statements) {
+                            eprintln!("{e}");
+                            process::exit(EXIT_RESOLVE_ERROR);
+                        }
                         if let Err(e) = interpreter.interpret(statements) {
                             eprintln!("{e}");
                             process::exit(EXIT_RUNTIME_ERROR);
@@ -147,6 +151,5 @@ fn repl() {
         }
     }
 }
-
 
 // testing cmd = ../interpreter-tester/test-stage.bat mp7

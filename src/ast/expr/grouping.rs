@@ -1,6 +1,6 @@
 use super::ExprEnum;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Grouping {
     pub expression: Box<ExprEnum>,
 }

@@ -5,6 +5,7 @@ use crate::ast::expr::Object;
 pub const EXIT_SCAN_ERROR: i32 = 65;
 pub const EXIT_PARSE_ERROR: i32 = 65;
 pub const EXIT_RUNTIME_ERROR: i32 = 70;
+pub const EXIT_RESOLVE_ERROR: i32 = 65;
 
 #[allow(dead_code)]
 #[derive(Error, Debug)]
@@ -45,10 +46,14 @@ pub enum RuntimeError {
     UnaryTypeMismatch { operator: String, operand: String },
     #[error("Undefined variable '{name}'.")]
     UndefinedVariable { name: String },
+    #[error("Undefined property '{name}'.")]
+    UndefinedProperty { name: String },
     #[error("Can only call functions and classes.")]
     FunctionCallError,
     #[error("Expected {required} arguments but got {passed}.")]
     FunctionCallArgsError { required: usize, passed: usize },
     #[error("Return Value")]
     ReturnValue { value: Object },
+    #[error("[line {line}] Error: {msg}")]
+    Error { line: usize, msg: String },
 }

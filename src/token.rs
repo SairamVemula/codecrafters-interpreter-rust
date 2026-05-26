@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use crate::ast::expr::Object;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum TokenType {
     LeftParen,
     RightParen,
@@ -115,7 +115,7 @@ impl TokenType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,

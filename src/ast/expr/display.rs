@@ -13,6 +13,10 @@ impl fmt::Display for ExprEnum {
             ExprEnum::Assign(a) => write!(f, "(= {} {})", a.name.lexeme, a.value),
             ExprEnum::Logical(l) => write!(f, "({} {} {})", l.operator.lexeme, l.left, l.right),
             ExprEnum::Call(call) => write!(f, "{call}"),
+            ExprEnum::Get(get) => write!(f, "{get}"),
+            ExprEnum::Set(set) => write!(f,"{set}"),
+            ExprEnum::This(this) => write!(f,"{this}"),
+            ExprEnum::Super(s) => write!(f,"{s}"),
         }
     }
 }

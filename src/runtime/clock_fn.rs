@@ -21,6 +21,10 @@ impl Callable for ClockFn {
     fn arity(&self) -> usize {
         0
     }
+    
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 impl Display for ClockFn {

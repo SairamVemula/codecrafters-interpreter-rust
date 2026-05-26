@@ -4,7 +4,7 @@ use crate::token::Token;
 
 use super::ExprEnum;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Call {
     pub callee: Box<ExprEnum>,
     pub args: Vec<ExprEnum>,
